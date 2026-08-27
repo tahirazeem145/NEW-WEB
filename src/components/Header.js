@@ -2,13 +2,13 @@ import { SoundFX } from '../engine/SoundFX.js';
 
 /**
  * Header Component
- * Handles brand logo, sound toggle button with visual equalizer bars,
- * and Profile drawer trigger.
+ * Movie gallery header with brand logo, sound visualizer equalizer,
+ * and Cinema About drawer trigger.
  */
 export class Header {
-  constructor(container, onProfileClick) {
+  constructor(container, onAboutClick) {
     this.container = container;
-    this.onProfileClick = onProfileClick;
+    this.onAboutClick = onAboutClick;
     this.element = null;
     this.soundBtn = null;
     this.init();
@@ -18,9 +18,9 @@ export class Header {
     this.element = document.createElement('header');
     this.element.className = 'hud-header';
     this.element.innerHTML = `
-      <div class="brand-title" id="brand-logo" title="Reset view">
+      <div class="brand-title" id="brand-logo" title="Reset to first movie">
         <span class="brand-dot"></span>
-        <span>JESPER LANDBERG</span>
+        <span>CINEPULSE 3D</span>
       </div>
       <div class="header-right">
         <button class="sound-toggle-btn" id="sound-toggle" aria-label="Toggle Sound FX">
@@ -31,7 +31,7 @@ export class Header {
           </div>
           <span class="sound-label">SOUND</span>
         </button>
-        <button class="profile-btn" id="profile-trigger">PROFILE</button>
+        <button class="profile-btn" id="about-trigger">ABOUT</button>
       </div>
     `;
 
@@ -47,11 +47,11 @@ export class Header {
       this.updateSoundButtonUI();
     });
 
-    const profileTrigger = this.element.querySelector('#profile-trigger');
-    profileTrigger.addEventListener('click', (e) => {
+    const aboutTrigger = this.element.querySelector('#about-trigger');
+    aboutTrigger.addEventListener('click', (e) => {
       e.stopPropagation();
       SoundFX.playModalOpen();
-      if (this.onProfileClick) this.onProfileClick();
+      if (this.onAboutClick) this.onAboutClick();
     });
   }
 
