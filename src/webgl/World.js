@@ -11,7 +11,8 @@ import { SoundFX } from '../engine/SoundFX.js';
  * World
  * Coordinates the wide panorama 3D cinema scene, perspective camera,
  * dark cybernetic atmosphere, cyber grid floor, floating pixel particles,
- * falling white asteroid speed lines, and Jesper Landberg 3D-to-2D morphing transitions.
+ * falling white asteroid speed lines, and Jesper Landberg 3D-to-2D morphing transitions
+ * with adaptive responsive camera scaling for desktop, tablet, and mobile screens.
  */
 export class World {
   constructor(canvasElement, movies, physics, inputManager) {
@@ -52,10 +53,24 @@ export class World {
     this.scene.background = new THREE.Color('#030305');
     this.scene.fog = new THREE.FogExp2('#030305', 0.022);
 
-    // 2. Camera - Eye level wide perspective
-    const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(46, aspect, 0.1, 120);
-    this.camera.position.set(0, 0.05, 9.8);
+    // 2. Camera - Adaptive Perspective
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const aspect = width / height;
+
+    let initialFov = 46;
+    let initialZ = 9.8;
+
+    if (aspect < 0.8) {
+      initialFov = 64;
+      initialZ = Math.max(13.8, 10.2 / aspect);
+    } else if (width < 768) {
+      initialFov = 54;
+      initialZ = 11.6;
+    }
+
+    this.camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 120);
+    this.camera.position.set(0, 0.05, initialZ);
     this.camera.lookAt(this.cameraTarget);
 
     // 3. Renderer
@@ -65,7 +80,7 @@ export class World {
       powerPreference: 'high-performance',
       alpha: false
     });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
@@ -148,8 +163,11 @@ export class World {
     const { movie, card, uv } = hitResult;
 
     // 1. Jesper Landberg camera glide trajectory
+    const isMobile = window.innerWidth < 768;
+    const targetZ = isMobile ? 8.2 : 7.4;
+
     gsap.to(this.camera.position, {
-      z: 7.4,
+      z: targetZ,
       y: 0.0,
       x: 0,
       duration: 1.15,
@@ -169,9 +187,25 @@ export class World {
     }, 420);
   }
 
+  getDefaultCameraDistance() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const aspect = width / height;
+
+    if (aspect < 0.8) {
+      return Math.max(13.8, 10.2 / aspect);
+    } else if (width < 768) {
+      return 11.6;
+    } else {
+      return 9.8;
+    }
+  }
+
   resetCardZoom() {
+    const targetZ = this.getDefaultCameraDistance();
+
     gsap.to(this.camera.position, {
-      z: window.innerWidth < 768 ? 11.5 : 9.8,
+      z: targetZ,
       y: 0.05,
       x: 0,
       duration: 1.15,
@@ -188,15 +222,28 @@ export class World {
     if (!this.camera || !this.renderer) return;
     const width = window.innerWidth;
     const height = window.innerHeight;
+    const aspect = width / height;
 
-    this.camera.aspect = width / height;
+    this.camera.aspect = aspect;
     
-    if (width < 768) {
-      this.camera.fov = 56;
-      this.camera.position.z = 11.5;
+    if (aspect < 0.8) {
+      // Mobile portrait screen
+      this.camera.fov = 64;
+      if (!this.isZooming) {
+        this.camera.position.z = Math.max(13.8, 10.2 / aspect);
+      }
+    } else if (width < 768) {
+      // Tablet / small screen
+      this.camera.fov = 54;
+      if (!this.isZooming) {
+        this.camera.position.z = 11.6;
+      }
     } else {
+      // Desktop
       this.camera.fov = 46;
-      this.camera.position.z = 9.8;
+      if (!this.isZooming) {
+        this.camera.position.z = 9.8;
+      }
     }
 
     this.camera.updateProjectionMatrix();
