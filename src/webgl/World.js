@@ -9,7 +9,7 @@ import { SoundFX } from '../engine/SoundFX.js';
 /**
  * World
  * Coordinates the wide panorama 3D cinema scene, perspective camera,
- * dark cybernetic atmosphere, grid floor, particles, and interactive card transitions.
+ * dark cybernetic atmosphere, cyber grid floor, floating pixel particles, and interactive transitions.
  */
 export class World {
   constructor(canvasElement, movies, physics, inputManager) {
@@ -75,10 +75,10 @@ export class World {
     dirLight.position.set(5, 10, 8);
     this.scene.add(dirLight);
 
-    // 5. 3D Modules: Dark Atmosphere, Cyber Grid Floor, Particles, Carousel
+    // 5. 3D Modules
     this.darkAtmosphere = new DarkAtmosphere(this.scene);
     this.gridFloor = new GridFloor(this.scene);
-    this.particles = new Particles(this.scene, 320);
+    this.particles = new Particles(this.scene, 750);
     this.carousel = new CylinderCarousel(this.scene, this.movies, {
       radius: 19.5,
       cardWidth: 10.4,
@@ -101,6 +101,7 @@ export class World {
   updateAtmosphereAccent(colorHex) {
     if (this.gridFloor) this.gridFloor.setAccentColor(colorHex);
     if (this.darkAtmosphere) this.darkAtmosphere.setAccentColor(colorHex);
+    if (this.particles) this.particles.setAccentColor(colorHex);
   }
 
   bindInputs() {
@@ -188,6 +189,10 @@ export class World {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    if (this.particles && this.particles.material && this.particles.material.uniforms) {
+      this.particles.material.uniforms.uResolution.value.set(width, height);
+    }
   }
 
   animate() {
