@@ -46,7 +46,6 @@ export class CylinderCarousel {
     const segmentsY = 16;
     const baseGeo = new THREE.PlaneGeometry(this.cardWidth, this.cardHeight, segmentsX, segmentsY);
 
-    // Concave cylindrical curvature along wide panorama arc
     const pos = baseGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
@@ -92,7 +91,8 @@ export class CylinderCarousel {
         currentScale: 1.0,
         tiltX: 0,
         tiltY: 0,
-        offsetZ: 0
+        offsetZ: 0,
+        customOpacity: 1.0
       };
 
       this.group.add(mesh);
@@ -119,14 +119,13 @@ export class CylinderCarousel {
 
       card.position.set(x, 0, z);
       
-      // Base orientation + dynamic 3D tilt
       card.rotation.y = normalizedAngle + card.userData.tiltY;
       card.rotation.x = card.userData.tiltX;
 
       // Depth fading towards edges
       const depthDist = Math.abs(normalizedAngle);
-      const fade = 1.0 - Math.min(Math.max((depthDist - 1.3) / 1.5, 0.0), 0.88);
-      card.material.uniforms.uOpacity.value = fade;
+      const baseFade = 1.0 - Math.min(Math.max((depthDist - 1.3) / 1.5, 0.0), 0.88);
+      card.material.uniforms.uOpacity.value = baseFade * card.userData.customOpacity;
 
       // Hover scale interpolation
       const isHovered = card === this.hoveredCard && !this.isZooming;
@@ -191,14 +190,14 @@ export class CylinderCarousel {
   }
 
   /**
-   * Smooth 3D Tilt and Zoom-in Animation on Card Click
+   * Smooth 3D Tilt and Continuous Zoom-in Animation on Card Click
    */
   zoomInCard(hitCard, uv, onComplete) {
     this.isZooming = true;
     this.zoomedCard = hitCard;
 
-    const tiltX = -(uv.y - 0.5) * 0.3;
-    const tiltY = (uv.x - 0.5) * 0.38;
+    const tiltX = -(uv.y - 0.5) * 0.28;
+    const tiltY = (uv.x - 0.5) * 0.35;
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -206,25 +205,38 @@ export class CylinderCarousel {
       }
     });
 
+    // 1. Zoom and elevate clicked card forward into full view
     tl.to(hitCard.userData, {
       tiltX: tiltX,
       tiltY: tiltY,
-      offsetZ: 2.4,
-      duration: 0.65,
+      offsetZ: 3.2,
+      duration: 0.8,
       ease: 'power3.out'
     }, 0);
 
     tl.to(hitCard.scale, {
-      x: 1.22,
-      y: 1.22,
-      z: 1.22,
-      duration: 0.65,
+      x: 1.28,
+      y: 1.28,
+      z: 1.28,
+      duration: 0.8,
       ease: 'power3.out'
     }, 0);
 
+    // 2. Softly fade neighbor cards
+    this.cards.forEach(card => {
+      if (card !== hitCard) {
+        tl.to(card.userData, {
+          customOpacity: 0.08,
+          duration: 0.5,
+          ease: 'power2.out'
+        }, 0);
+      }
+    });
+
+    // 3. Gentle liquid ripple transition
     tl.to(hitCard.material.uniforms.uMouseSpeed, {
-      value: 0.6,
-      duration: 0.25,
+      value: 0.5,
+      duration: 0.3,
       yoyo: true,
       repeat: 1,
       ease: 'power2.out'
@@ -256,17 +268,26 @@ export class CylinderCarousel {
       tiltX: 0,
       tiltY: 0,
       offsetZ: 0,
-      duration: 0.6,
-      ease: 'power2.inOut'
+      duration: 0.7,
+      ease: 'power3.inOut'
     }, 0);
 
     tl.to(card.scale, {
       x: 1.0,
       y: 1.0,
       z: 1.0,
-      duration: 0.6,
-      ease: 'power2.inOut'
+      duration: 0.7,
+      ease: 'power3.inOut'
     }, 0);
+
+    // Restore neighbor cards opacity
+    this.cards.forEach(c => {
+      tl.to(c.userData, {
+        customOpacity: 1.0,
+        duration: 0.6,
+        ease: 'power2.out'
+      }, 0);
+    });
 
     return tl;
   }
