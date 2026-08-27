@@ -4,12 +4,14 @@ import { CylinderCarousel } from './CylinderCarousel.js';
 import { GridFloor } from './GridFloor.js';
 import { DarkAtmosphere } from './DarkAtmosphere.js';
 import { Particles } from './Particles.js';
+import { AsteroidLines } from './AsteroidLines.js';
 import { SoundFX } from '../engine/SoundFX.js';
 
 /**
  * World
  * Coordinates the wide panorama 3D cinema scene, perspective camera,
- * dark cybernetic atmosphere, cyber grid floor, floating pixel particles, and interactive transitions.
+ * dark cybernetic atmosphere, cyber grid floor, floating pixel particles,
+ * falling white asteroid speed lines, and interactive transitions.
  */
 export class World {
   constructor(canvasElement, movies, physics, inputManager) {
@@ -27,6 +29,7 @@ export class World {
     this.gridFloor = null;
     this.darkAtmosphere = null;
     this.particles = null;
+    this.asteroidLines = null;
 
     this.clock = new THREE.Clock();
     this.isPaused = false;
@@ -78,6 +81,7 @@ export class World {
     // 5. 3D Modules
     this.darkAtmosphere = new DarkAtmosphere(this.scene);
     this.gridFloor = new GridFloor(this.scene);
+    this.asteroidLines = new AsteroidLines(this.scene, 55);
     this.particles = new Particles(this.scene, 40);
     this.carousel = new CylinderCarousel(this.scene, this.movies, {
       radius: 19.5,
@@ -219,6 +223,7 @@ export class World {
     this.carousel.update(current, velocity, elapsedTime);
     this.gridFloor.update(elapsedTime, velocity);
     this.darkAtmosphere.update(elapsedTime, velocity);
+    this.asteroidLines.update(elapsedTime, velocity);
     this.particles.update(elapsedTime, velocity);
 
     // Track active movie index
@@ -287,6 +292,7 @@ export class World {
     this.carousel.destroy();
     this.gridFloor.destroy();
     this.darkAtmosphere.destroy();
+    this.asteroidLines.destroy();
     this.particles.destroy();
     this.renderer.dispose();
   }
