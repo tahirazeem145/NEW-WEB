@@ -12,7 +12,7 @@ import { SoundFX } from '../engine/SoundFX.js';
  * Coordinates the wide panorama 3D cinema scene, perspective camera,
  * dark cybernetic atmosphere, cyber grid floor, floating pixel particles,
  * falling white asteroid speed lines, and Jesper Landberg 3D-to-2D morphing transitions
- * with adaptive responsive camera scaling for desktop, tablet, and mobile screens.
+ * with multi-directional (horizontal + vertical) scroll & touch gesture physics for mobile & desktop.
  */
 export class World {
   constructor(canvasElement, movies, physics, inputManager) {
@@ -109,7 +109,7 @@ export class World {
       this.updateAtmosphereAccent(this.movies[0].accentColor);
     }
 
-    // 6. Bind Input
+    // 6. Bind Input with Dual Horizontal & Vertical Scroll Support
     this.bindInputs();
 
     // 7. Render Loop
@@ -131,15 +131,23 @@ export class World {
       }
     });
 
-    this.input.on('drag', ({ dx }) => {
+    // Dual Horizontal & Vertical Swipe / Drag Physics (for both Mobile & Desktop)
+    this.input.on('drag', ({ dx, dy }) => {
       if (!this.isZooming) {
-        this.physics.applyDrag(dx);
+        // Natural omni-directional drag: accepts horizontal swipe (dx) and vertical swipe (dy)
+        const combinedDelta = Math.abs(dx) > Math.abs(dy) ? dx : dy * 1.15;
+        this.physics.applyDrag(combinedDelta);
       }
     });
 
-    this.input.on('wheel', ({ deltaY }) => {
+    // Dual Horizontal & Vertical Wheel / Trackpad Scroll (for both Mobile & Desktop)
+    this.input.on('wheel', ({ deltaY, deltaX }) => {
       if (!this.isZooming) {
-        this.physics.applyWheel(deltaY);
+        // Natural omni-directional wheel: accepts vertical mouse wheel (deltaY) and horizontal trackpad swipe (deltaX)
+        const absY = Math.abs(deltaY);
+        const absX = Math.abs(deltaX || 0);
+        const wheelDelta = absY >= absX ? deltaY : deltaX;
+        this.physics.applyWheel(wheelDelta);
       }
     });
 
