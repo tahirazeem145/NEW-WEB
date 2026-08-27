@@ -3,21 +3,21 @@ import { MoviePosterRenderer } from './MoviePosterRenderer.js';
 
 /**
  * MovieTextureGenerator
- * Dynamically loads and renders official high-resolution photographic movie posters
- * onto high-DPI (1600x1000) canvas textures with cinematic lighting, vignette, and HUD overlays.
+ * Composites high-resolution 16:9 movie posters with minimalist editorial typography,
+ * corner metadata, and circular arrow actions matching the Jesper Landberg layout.
  */
 export class MovieTextureGenerator {
   static createMovieTexture(movie) {
-    const width = 1600;
-    const height = 1000;
+    const width = 1920;
+    const height = 1180;
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
 
-    // 1. Render immediate stylized artwork as base
+    // 1. Initial fallback render
     MoviePosterRenderer.renderPoster(ctx, width, height, movie);
-    this.drawCardHUD(ctx, width, height, movie);
+    this.drawEditorialOverlays(ctx, width, height, movie);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearFilter;
@@ -25,18 +25,17 @@ export class MovieTextureGenerator {
     texture.generateMipmaps = true;
     texture.colorSpace = THREE.SRGBColorSpace;
 
-    // 2. Load the official photographic movie poster
+    // 2. Load the 16:9 widescreen movie poster
     if (movie.posterUrl) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = movie.posterUrl;
 
       img.onload = () => {
-        // Redraw canvas with full-bleed real movie poster image
         ctx.save();
         ctx.clearRect(0, 0, width, height);
 
-        // Aspect-ratio cover calculation
+        // Aspect-ratio cover
         const imgAspect = img.width / img.height;
         const canvasAspect = width / height;
         let drawW, drawH, drawX, drawY;
@@ -53,48 +52,36 @@ export class MovieTextureGenerator {
           drawY = (height - drawH) / 2;
         }
 
-        // Draw real movie poster image
+        // Draw the full-bleed 16:9 movie poster
         ctx.drawImage(img, drawX, drawY, drawW, drawH);
 
-        // Cinematic Atmospheric Vignette & Contrast Overlay
-        const vignette = ctx.createRadialGradient(width * 0.5, height * 0.5, width * 0.25, width * 0.5, height * 0.5, width * 0.75);
-        vignette.addColorStop(0, 'rgba(0, 0, 0, 0.05)');
-        vignette.addColorStop(0.6, 'rgba(0, 0, 0, 0.35)');
+        // Cinematic Atmospheric Vignette
+        const vignette = ctx.createRadialGradient(width * 0.5, height * 0.5, width * 0.3, width * 0.5, height * 0.5, width * 0.75);
+        vignette.addColorStop(0, 'rgba(0, 0, 0, 0.0)');
+        vignette.addColorStop(0.7, 'rgba(0, 0, 0, 0.35)');
         vignette.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
         ctx.fillStyle = vignette;
         ctx.fillRect(0, 0, width, height);
 
-        // Bottom & Right Gradient Bar for crisp typography contrast
-        const bottomGrad = ctx.createLinearGradient(0, height * 0.5, 0, height);
+        // Bottom gradient for high contrast typography
+        const bottomGrad = ctx.createLinearGradient(0, height * 0.55, 0, height);
         bottomGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        bottomGrad.addColorStop(0.7, 'rgba(4, 4, 6, 0.7)');
-        bottomGrad.addColorStop(1, 'rgba(4, 4, 6, 0.95)');
+        bottomGrad.addColorStop(0.7, 'rgba(6, 6, 8, 0.65)');
+        bottomGrad.addColorStop(1, 'rgba(6, 6, 8, 0.95)');
         ctx.fillStyle = bottomGrad;
-        ctx.fillRect(0, height * 0.5, width, height * 0.5);
+        ctx.fillRect(0, height * 0.55, width, height * 0.45);
 
-        // Title & Dialogue Overlay at bottom left
-        ctx.fillStyle = movie.accentColor;
-        ctx.font = '900 68px "Syne", sans-serif';
-        ctx.textAlign = 'left';
-        ctx.shadowColor = '#000000';
-        ctx.shadowBlur = 20;
-        ctx.fillText(movie.title, 60, height - 120);
-        ctx.shadowBlur = 0;
+        // Top gradient for header tags
+        const topGrad = ctx.createLinearGradient(0, 0, 0, 160);
+        topGrad.addColorStop(0, 'rgba(6, 6, 8, 0.8)');
+        topGrad.addColorStop(1, 'rgba(6, 6, 8, 0)');
+        ctx.fillStyle = topGrad;
+        ctx.fillRect(0, 0, width, 160);
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'italic 500 20px "Playfair Display", Georgia, serif';
-        ctx.fillText(`“ ${movie.iconicDialogue} ”`, 60, height - 70);
-
-        ctx.fillStyle = '#a0a0a5';
-        ctx.font = '500 14px "Space Mono", monospace';
-        ctx.fillText(`${movie.director.toUpperCase()}  •  ${movie.musicDirector.toUpperCase()}`, 60, height - 40);
-
-        // Draw Top HUD (Rating, Index, Certification)
-        this.drawCardHUD(ctx, width, height, movie);
+        // Draw Minimalist Editorial Overlays matching Jesper Landberg reference
+        this.drawEditorialOverlays(ctx, width, height, movie);
 
         ctx.restore();
-
-        // Notify Three.js that texture is ready
         texture.needsUpdate = true;
       };
     }
@@ -102,51 +89,76 @@ export class MovieTextureGenerator {
     return texture;
   }
 
-  static drawCardHUD(ctx, width, height, movie) {
+  static drawEditorialOverlays(ctx, width, height, movie) {
     ctx.save();
-    // Top-left: Index & Certification Pill
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    this.roundRect(ctx, 50, 45, 230, 48, 24);
-    ctx.fill();
-    ctx.strokeStyle = `${movie.accentColor}88`;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
 
+    // 1. Top-Left: Minimalist dot & metadata breadcrumb
     ctx.fillStyle = movie.accentColor;
-    ctx.font = '700 16px "Space Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(`${movie.index} • ${movie.certification}`, 165, 75);
-
-    // Top-right: IMDb Rating Badge
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    this.roundRect(ctx, width - 210, 45, 160, 48, 24);
+    ctx.beginPath();
+    ctx.arc(60, 60, 6, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = movie.accentColor;
-    ctx.lineWidth = 2;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '600 15px "Space Grotesk", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.letterSpacing = '0.08em';
+    ctx.fillText(`${movie.index}  •  ${movie.certification.toUpperCase()}  •  ${movie.year}`, 80, 65);
+
+    // 2. Top-Right: Rating Badge Pill
+    ctx.fillStyle = 'rgba(10, 10, 12, 0.75)';
+    this.roundRect(ctx, width - 200, 40, 140, 42, 21);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 1.2;
     ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '700 16px "Space Grotesk", sans-serif';
+    ctx.font = '700 15px "Space Mono", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(`★ ${movie.rating} / 10`, width - 130, 75);
+    ctx.fillText(`★ ${movie.rating}`, width - 130, 66);
 
-    // Bottom-right: Fluid Liquid Explore Indicator
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    // 3. Bottom-Left: Large Modern Title & Subtitle (matching "Casa Di Solare" style)
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 64px "Syne", "Playfair Display", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 24;
+    ctx.fillText(movie.title, 60, height - 120);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.font = '400 20px "Space Grotesk", sans-serif';
+    ctx.shadowBlur = 12;
+    ctx.fillText(`“ ${movie.iconicDialogue} ”`, 60, height - 74);
+
+    ctx.fillStyle = movie.accentColor;
+    ctx.font = '500 14px "Space Mono", monospace';
+    ctx.shadowBlur = 0;
+    ctx.fillText(`DIR. ${movie.director.toUpperCase()}   |   MUSIC: ${movie.musicDirector.toUpperCase()}`, 60, height - 42);
+
+    // 4. Bottom-Right: Circular dark button with white arrow → (exact Jesper Landberg button)
+    const btnX = width - 85;
+    const btnY = height - 80;
+    const btnRadius = 32;
+
+    ctx.fillStyle = '#0a0a0c';
     ctx.beginPath();
-    ctx.arc(width - 80, height - 75, 28, 0, Math.PI * 2);
+    ctx.arc(btnX, btnY, btnRadius, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = movie.accentColor;
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
 
+    // Draw Arrow →
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.moveTo(width - 88, height - 75);
-    ctx.lineTo(width - 72, height - 75);
-    ctx.lineTo(width - 78, height - 81);
-    ctx.moveTo(width - 72, height - 75);
-    ctx.lineTo(width - 78, height - 69);
+    ctx.moveTo(btnX - 10, btnY);
+    ctx.lineTo(btnX + 8, btnY);
+    ctx.lineTo(btnX + 2, btnY - 6);
+    ctx.moveTo(btnX + 8, btnY);
+    ctx.lineTo(btnX + 2, btnY + 6);
     ctx.stroke();
 
     ctx.restore();
