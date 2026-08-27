@@ -15,9 +15,9 @@ export class CylinderCarousel {
 
     this.group = new THREE.Group();
     this.cards = [];
-    this.radius = options.radius || 12.5;
-    this.cardWidth = options.cardWidth || 8.8;
-    this.cardHeight = options.cardHeight || 5.4;
+    this.radius = options.radius || 13.5;
+    this.cardWidth = options.cardWidth || 9.4;
+    this.cardHeight = options.cardHeight || 5.6;
 
     // Distribute all 10 movies around the cylinder circle
     this.itemCount = this.movies.length;
