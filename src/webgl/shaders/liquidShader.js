@@ -1,7 +1,8 @@
 /**
  * GLSL Liquid Distortion Shader
  * Simulates fluid dynamic ripples, liquid surface tension displacement,
- * RGB chromatic dispersion, and caustic sheen when hovering over 3D movie cards.
+ * RGB chromatic dispersion, and caustic sheen ONLY when the cursor is actively moving over 3D movie cards.
+ * When the cursor is stationary or placed, the poster remains crystal clear with 0 distortion.
  */
 
 export const liquidVertexShader = `
@@ -22,7 +23,7 @@ export const liquidVertexShader = `
     float newX = uRadius * sin(angle);
     float newZ = uRadius * (cos(angle) - 1.0);
     
-    // Add subtle kinetic wave ripple along mesh when spinning rapidly
+    // Subtle kinetic wave ripple along mesh when carousel spins
     float kineticWave = sin(position.y * 1.5 + uTime * 4.0) * uVelocity * 0.08;
     vec3 curvedPosition = vec3(newX, position.y + kineticWave, newZ);
 
@@ -39,6 +40,7 @@ export const liquidFragmentShader = `
   uniform float uTime;
   uniform vec2 uMouse;
   uniform float uHover;
+  uniform float uMouseSpeed;
   uniform float uVelocity;
   uniform vec3 uAccentColor;
   uniform float uOpacity;
@@ -69,52 +71,56 @@ export const liquidFragmentShader = `
     vec2 dir = uv - uMouse;
     float dist = length(dir);
 
+    // Active motion factor: only trigger water ripples when cursor is actively moving
+    // When cursor is placed still (uMouseSpeed == 0), motionFactor = 0 -> zero distortion
+    float motionFactor = smoothstep(0.005, 0.25, uMouseSpeed) * uHover;
+
     // Dynamic multi-octave liquid ripple equations
-    float rippleFreq = 26.0;
-    float rippleSpeed = 4.5;
+    float rippleFreq = 28.0;
+    float rippleSpeed = 5.5;
     float ripple = sin(dist * rippleFreq - uTime * rippleSpeed);
     
     // Liquid noise turbulence
-    float turbulence = perlinNoise(uv * 8.0 + vec2(uTime * 0.4, uTime * 0.3)) * 0.2;
+    float turbulence = perlinNoise(uv * 8.0 + vec2(uTime * 0.4, uTime * 0.3)) * 0.25;
     
-    // Gaussian dropoff from mouse center
-    float falloff = exp(-dist * 5.8);
+    // Gaussian spatial dropoff from cursor position
+    float falloff = exp(-dist * 5.2);
 
-    // Total displacement vector
-    vec2 liquidDisplacement = normalize(dir + 0.0001) * (ripple + turbulence) * falloff * uHover * 0.075;
+    // Total displacement vector (strictly 0 when mouse is stationary)
+    vec2 liquidDisplacement = normalize(dir + 0.0001) * (ripple + turbulence) * falloff * motionFactor * 0.09;
 
-    // Kinetic drag shear
+    // Kinetic carousel drag shear
     liquidDisplacement.x += sin(uv.y * 10.0 + uTime * 2.0) * uVelocity * 0.04;
 
-    // Liquid Chromatic Aberration (separating R, G, B channels across the wave gradient)
-    float rOffset = 1.14;
+    // Liquid Chromatic Aberration (R, G, B channel separation on motion)
+    float rOffset = 1.15;
     float gOffset = 1.00;
-    float bOffset = 0.86;
+    float bOffset = 0.85;
 
     vec2 uvR = uv + liquidDisplacement * rOffset;
     vec2 uvG = uv + liquidDisplacement * gOffset;
     vec2 uvB = uv + liquidDisplacement * bOffset;
 
-    // Clamp UVs to avoid texture border bleeding
+    // Clamp UVs to avoid texture border artifacts
     uvR = clamp(uvR, vec2(0.001), vec2(0.999));
     uvG = clamp(uvG, vec2(0.001), vec2(0.999));
     uvB = clamp(uvB, vec2(0.001), vec2(0.999));
 
-    vec4 colorR = texture2D(uTexture, uvR);
-    vec4 colorG = texture2D(uTexture, uvG);
-    vec4 colorB = texture2D(uTexture, uvB);
+    // Sample color channels with fluid displacement
+    float r = texture2D(uTexture, uvR).r;
+    float g = texture2D(uTexture, uvG).g;
+    float b = texture2D(uTexture, uvB).b;
+    float a = texture2D(uTexture, uv).a;
 
-    vec4 finalColor = vec4(colorR.r, colorG.g, colorB.b, colorG.a);
+    vec3 finalColor = vec3(r, g, b);
 
-    // Liquid surface caustic shimmer on wave peaks
-    float caustic = pow(max(0.0, (ripple + turbulence) * falloff), 2.5) * uHover * 0.4;
-    finalColor.rgb += uAccentColor * caustic;
+    // Specular liquid caustic glint active ONLY during active cursor motion
+    if (motionFactor > 0.001) {
+      float caustic = pow(max(0.0, sin(dist * 32.0 - uTime * 6.0) * falloff), 4.0) * motionFactor * 0.45;
+      finalColor += uAccentColor * caustic;
+      finalColor += vec3(0.15, 0.2, 0.25) * (caustic * 0.6);
+    }
 
-    // Subtle edge rim light
-    float edgeVignette = smoothstep(0.0, 0.04, uv.x) * smoothstep(1.0, 0.96, uv.x) *
-                         smoothstep(0.0, 0.04, uv.y) * smoothstep(1.0, 0.96, uv.y);
-    finalColor.rgb *= (0.65 + 0.35 * edgeVignette);
-
-    gl_FragColor = vec4(finalColor.rgb, finalColor.a * uOpacity);
+    gl_FragColor = vec4(finalColor, a * uOpacity);
   }
 `;

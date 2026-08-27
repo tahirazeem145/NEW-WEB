@@ -6,7 +6,7 @@ import { liquidVertexShader, liquidFragmentShader } from './shaders/liquidShader
 /**
  * CylinderCarousel
  * 3D Curved Cylindrical Movie Showcase with GLSL Liquid Distortion Shader
- * and dynamic interactive 3D Tilt and Zoom-in mechanics.
+ * that activates ripples strictly during cursor motion and stays crystal clear when stationary.
  */
 export class CylinderCarousel {
   constructor(scene, movies, options = {}) {
@@ -25,6 +25,10 @@ export class CylinderCarousel {
 
     this.hoveredCard = null;
     this.hoveredUv = new THREE.Vector2(0.5, 0.5);
+    this.prevUv = new THREE.Vector2(0.5, 0.5);
+    this.mouseSpeed = 0.0;
+    this.targetMouseSpeed = 0.0;
+
     this.selectedIndex = 0;
     this.zoomedCard = null;
     this.isZooming = false;
@@ -66,6 +70,7 @@ export class CylinderCarousel {
           uTime: { value: 0.0 },
           uMouse: { value: new THREE.Vector2(0.5, 0.5) },
           uHover: { value: 0.0 },
+          uMouseSpeed: { value: 0.0 },
           uVelocity: { value: 0.0 },
           uRadius: { value: this.radius },
           uAccentColor: { value: new THREE.Color(movie.accentColor) },
@@ -81,6 +86,7 @@ export class CylinderCarousel {
         currentHover: 0.0,
         targetMouse: new THREE.Vector2(0.5, 0.5),
         currentMouse: new THREE.Vector2(0.5, 0.5),
+        mouseSpeed: 0.0,
         baseScale: 1.0,
         currentScale: 1.0,
         tiltX: 0,
@@ -136,6 +142,15 @@ export class CylinderCarousel {
   update(progress, velocity = 0, time = 0) {
     this.updateCardPositions(progress);
 
+    // Calculate mouse movement speed on the card
+    const deltaMove = this.hoveredUv.distanceTo(this.prevUv);
+    this.prevUv.copy(this.hoveredUv);
+    this.targetMouseSpeed = deltaMove * 18.0; // amplify UV displacement delta
+
+    // Smoothly decay mouse speed to 0 when placed/stationary
+    this.mouseSpeed += (this.targetMouseSpeed - this.mouseSpeed) * 0.22;
+    this.targetMouseSpeed *= 0.75; // rapid decay
+
     for (let i = 0; i < this.cards.length; i++) {
       const card = this.cards[i];
       const mat = card.material;
@@ -146,12 +161,15 @@ export class CylinderCarousel {
 
       if (isHovered && !this.isZooming) {
         card.userData.targetMouse.copy(this.hoveredUv);
-        // Subtle real-time 3D tilt tracking cursor on card
+        card.userData.mouseSpeed = this.mouseSpeed;
+
+        // Subtle 3D tilt tracking cursor on card
         const targetTiltX = -(this.hoveredUv.y - 0.5) * 0.18;
         const targetTiltY = (this.hoveredUv.x - 0.5) * 0.22;
         card.userData.tiltX += (targetTiltX - card.userData.tiltX) * 0.1;
         card.userData.tiltY += (targetTiltY - card.userData.tiltY) * 0.1;
       } else if (!this.isZooming) {
+        card.userData.mouseSpeed *= 0.8;
         card.userData.tiltX += (0 - card.userData.tiltX) * 0.1;
         card.userData.tiltY += (0 - card.userData.tiltY) * 0.1;
       }
@@ -161,6 +179,7 @@ export class CylinderCarousel {
       mat.uniforms.uTime.value = time;
       mat.uniforms.uVelocity.value = velocity;
       mat.uniforms.uHover.value = card.userData.currentHover;
+      mat.uniforms.uMouseSpeed.value = card.userData.mouseSpeed;
       mat.uniforms.uMouse.value.copy(card.userData.currentMouse);
     }
 
@@ -181,14 +200,12 @@ export class CylinderCarousel {
     const tiltX = -(uv.y - 0.5) * 0.35;
     const tiltY = (uv.x - 0.5) * 0.45;
 
-    // Timeline for cinematic tilt + zoom-in
     const tl = gsap.timeline({
       onComplete: () => {
         if (onComplete) onComplete(hitCard.userData.movie);
       }
     });
 
-    // 1. Zoom card forward and apply pronounced 3D tilt
     tl.to(hitCard.userData, {
       tiltX: tiltX,
       tiltY: tiltY,
@@ -205,13 +222,13 @@ export class CylinderCarousel {
       ease: 'power3.out'
     }, 0);
 
-    // Boost liquid ripple and brightness on click
-    tl.to(hitCard.material.uniforms.uHover, {
-      value: 1.6,
-      duration: 0.3,
+    // Dynamic ripple burst strictly during the click transition
+    tl.to(hitCard.material.uniforms.uMouseSpeed, {
+      value: 0.6,
+      duration: 0.25,
       yoyo: true,
       repeat: 1,
-      ease: 'power2.inOut'
+      ease: 'power2.out'
     }, 0);
 
     return tl;
