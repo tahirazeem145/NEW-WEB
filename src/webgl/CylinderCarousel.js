@@ -33,6 +33,7 @@ export class CylinderCarousel {
     this.zoomedCard = null;
     this.isZooming = false;
     this.zoomTimeline = null;
+    this.savedProgress = 0;
 
     this.init();
   }
@@ -97,6 +98,7 @@ export class CylinderCarousel {
 
   updateCardPositions(progress) {
     const totalAngle = Math.PI * 2;
+    this.savedProgress = progress;
 
     for (let i = 0; i < this.cards.length; i++) {
       const card = this.cards[i];
@@ -239,8 +241,8 @@ export class CylinderCarousel {
         this.zoomTimeline.to(card.userData, {
           offsetX: dir * 14.0,
           customOpacity: 0.0,
-          duration: 0.9,
-          ease: 'power3.inOut'
+          duration: 1.15,
+          ease: 'power4.inOut'
         }, 0);
       }
     });
@@ -261,6 +263,15 @@ export class CylinderCarousel {
     const card = this.zoomedCard;
     if (this.zoomTimeline) this.zoomTimeline.kill();
 
+    const totalAngle = Math.PI * 2;
+    const i = card.userData.index;
+    const progress = this.savedProgress;
+    const angle = i * this.angleStep - progress;
+    let normalizedAngle = ((angle % totalAngle) + totalAngle) % totalAngle;
+    if (normalizedAngle > Math.PI) normalizedAngle -= totalAngle;
+    const targetX = Math.sin(normalizedAngle) * this.radius;
+    const targetZ = Math.cos(normalizedAngle) * this.radius - this.radius;
+
     this.zoomTimeline = gsap.timeline({
       onComplete: () => {
         this.isZooming = false;
@@ -276,7 +287,25 @@ export class CylinderCarousel {
       ease: 'power4.inOut'
     }, 0);
 
-    // 2. Scale back to standard scale
+    // 2. Position card back into exact curved ribbon slot
+    this.zoomTimeline.to(card.position, {
+      x: targetX,
+      y: 0,
+      z: targetZ,
+      duration: 1.15,
+      ease: 'power4.inOut'
+    }, 0);
+
+    // 3. Re-align rotation to cylinder normal
+    this.zoomTimeline.to(card.rotation, {
+      x: 0,
+      y: normalizedAngle,
+      z: 0,
+      duration: 1.15,
+      ease: 'power4.inOut'
+    }, 0);
+
+    // 4. Scale back to standard scale
     this.zoomTimeline.to(card.scale, {
       x: 1.0,
       y: 1.0,
@@ -285,14 +314,14 @@ export class CylinderCarousel {
       ease: 'power4.inOut'
     }, 0);
 
-    // 3. Restore neighbor cards positions and opacities
+    // 5. Restore neighbor cards positions and opacities synchronously
     this.cards.forEach(c => {
       this.zoomTimeline.to(c.userData, {
         offsetX: 0,
         customOpacity: 1.0,
-        duration: 1.1,
-        ease: 'power3.inOut'
-      }, 0.05);
+        duration: 1.15,
+        ease: 'power4.inOut'
+      }, 0);
     });
 
     return this.zoomTimeline;

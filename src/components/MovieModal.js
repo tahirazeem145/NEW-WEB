@@ -5,7 +5,7 @@ import { SoundFX } from '../engine/SoundFX.js';
  * MovieModal Component
  * Jesper Landberg Signature Case Study Experience.
  * Seamlessly morphs from the 3D flattened card into a full-page editorial showcase
- * with smooth momentum easing, dialogue typography, and staggered content revelation.
+ * and collapses synchronously back into the 3D curved cylinder ribbon on close.
  */
 export class MovieModal {
   constructor(container, options = {}) {
@@ -228,32 +228,34 @@ export class MovieModal {
     this.isOpen = false;
     SoundFX.playModalClose();
 
+    // Instantly trigger the 3D WebGL unbending rewind simultaneously at t = 0
+    if (this.onCloseCallback) {
+      this.onCloseCallback();
+    }
+
     if (this.currentTimeline) this.currentTimeline.kill();
 
     this.currentTimeline = gsap.timeline({
       onComplete: () => {
         this.backdrop.classList.remove('active');
-        if (this.onCloseCallback) {
-          this.onCloseCallback();
-        }
       }
     });
 
-    // Seamless un-zoom contraction back into 3D cylinder
+    // Seamless un-zoom contraction back into 3D cylinder footprint (synchronized 1.15s power4.inOut)
     this.currentTimeline.to(this.modal, {
-      scale: 0.84,
-      y: 50,
+      scale: 0.82,
+      y: 60,
       opacity: 0,
-      filter: 'blur(12px)',
-      duration: 0.95,
+      filter: 'blur(16px)',
+      duration: 1.15,
       ease: 'power4.inOut'
     }, 0);
 
     this.currentTimeline.to(this.backdrop, {
       opacity: 0,
       backdropFilter: 'blur(0px)',
-      duration: 0.95,
+      duration: 1.15,
       ease: 'power4.inOut'
-    }, 0.05);
+    }, 0);
   }
 }
