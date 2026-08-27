@@ -2,13 +2,13 @@ import { SoundFX } from '../engine/SoundFX.js';
 
 /**
  * Footer Component
- * Handles view mode toggles (Featured 3D vs Full Grid), slide counter,
- * and Newsletter modal trigger.
+ * Movie gallery footer with Featured 3D / All Movies switcher,
+ * movie counter (01/10), and floating nav chevrons.
  */
 export class Footer {
-  constructor(container, totalProjects, options = {}) {
+  constructor(container, totalMovies, options = {}) {
     this.container = container;
-    this.totalProjects = totalProjects;
+    this.totalMovies = totalMovies;
     this.onViewModeChange = options.onViewModeChange;
     this.onNewsletterClick = options.onNewsletterClick;
     this.onPrevClick = options.onPrevClick;
@@ -23,23 +23,22 @@ export class Footer {
   }
 
   init() {
-    // HUD Footer
     this.element = document.createElement('footer');
     this.element.className = 'hud-footer';
     this.element.innerHTML = `
       <div class="view-mode-toggle" id="view-mode-toggle">
-        <span class="view-opt active" data-mode="featured">FEATURED</span>
+        <span class="view-opt active" data-mode="featured">3D CYLINDER</span>
         <span class="view-divider">/</span>
-        <span class="view-opt" data-mode="full">FULL</span>
+        <span class="view-opt" data-mode="full">ALL MOVIES</span>
       </div>
 
       <div class="carousel-counter" id="carousel-counter">
         <span class="carousel-counter-current" id="counter-current">01</span>
         <span>/</span>
-        <span class="carousel-counter-total" id="counter-total">${String(this.totalProjects).padStart(2, '0')}</span>
+        <span class="carousel-counter-total" id="counter-total">${String(this.totalMovies).padStart(2, '0')}</span>
       </div>
 
-      <button class="newsletter-btn" id="newsletter-trigger">NEWSLETTER</button>
+      <button class="newsletter-btn" id="newsletter-trigger">UPDATES</button>
     `;
 
     this.container.appendChild(this.element);
@@ -48,10 +47,10 @@ export class Footer {
     this.arrowsElement = document.createElement('div');
     this.arrowsElement.className = 'nav-arrows';
     this.arrowsElement.innerHTML = `
-      <button class="nav-arrow-btn" id="nav-prev" title="Previous Project" aria-label="Previous Project">
+      <button class="nav-arrow-btn" id="nav-prev" title="Previous Movie" aria-label="Previous Movie">
         <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
-      <button class="nav-arrow-btn" id="nav-next" title="Next Project" aria-label="Next Project">
+      <button class="nav-arrow-btn" id="nav-next" title="Next Movie" aria-label="Next Movie">
         <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
       </button>
     `;
@@ -66,7 +65,7 @@ export class Footer {
       opt.addEventListener('click', () => {
         const mode = opt.dataset.mode;
         if (mode === this.currentMode) return;
-        
+
         viewOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
         this.currentMode = mode;
