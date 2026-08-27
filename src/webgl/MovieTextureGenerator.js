@@ -29,7 +29,9 @@ export class MovieTextureGenerator {
     if (movie.posterUrl) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.src = movie.posterUrl;
+
+      let posterSrc = movie.posterUrl;
+      img.src = posterSrc;
 
       img.onload = () => {
         ctx.save();
@@ -84,97 +86,90 @@ export class MovieTextureGenerator {
         ctx.restore();
         texture.needsUpdate = true;
       };
+
+      img.onerror = () => {
+        console.warn(`Could not load primary poster at ${posterSrc}, attempting relative fallback.`);
+        const fallbackSrc = `./posters/${posterSrc.split('/').pop()}`;
+        if (img.src !== fallbackSrc) {
+          img.src = fallbackSrc;
+        }
+      };
     }
 
     return texture;
   }
 
   static drawEditorialOverlays(ctx, width, height, movie) {
-    ctx.save();
-
-    // 1. Top-Left: Minimalist dot & metadata breadcrumb
-    ctx.fillStyle = movie.accentColor;
-    ctx.beginPath();
-    ctx.arc(60, 60, 6, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '600 15px "Space Grotesk", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.letterSpacing = '0.08em';
-    ctx.fillText(`${movie.index}  •  ${movie.certification.toUpperCase()}  •  ${movie.year}`, 80, 65);
-
-    // 2. Top-Right: Rating Badge Pill
-    ctx.fillStyle = 'rgba(10, 10, 12, 0.75)';
-    this.roundRect(ctx, width - 200, 40, 140, 42, 21);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '700 15px "Space Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(`★ ${movie.rating}`, width - 130, 66);
-
-    // 3. Bottom-Left: Large Modern Title & Subtitle (matching "Casa Di Solare" style)
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '800 64px "Syne", "Playfair Display", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 24;
-    ctx.fillText(movie.title, 60, height - 120);
-
+    // A. Top-Left Minimalist Breadcrumb Meta Tag
+    ctx.font = '700 19px "JetBrains Mono", monospace';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    ctx.font = '400 20px "Space Grotesk", sans-serif';
-    ctx.shadowBlur = 12;
-    ctx.fillText(`“ ${movie.iconicDialogue} ”`, 60, height - 74);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const metaTag = `● ${movie.index}  •  ${movie.certification.toUpperCase()}  •  ${movie.year}`;
+    ctx.fillText(metaTag, 64, 52);
 
+    // B. Top-Right IMDb Rating Pill & Duration
+    ctx.font = '700 19px "JetBrains Mono", monospace';
+    ctx.textAlign = 'right';
     ctx.fillStyle = movie.accentColor;
-    ctx.font = '500 14px "Space Mono", monospace';
+    ctx.fillText(`★ ${movie.rating} / 10`, width - 64, 52);
+
+    // C. Bottom-Left Jesper Landberg Large Serif Display Title
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    
+    // Massive Hero Title
+    ctx.font = '900 84px "Playfair Display", "Cinzel", "Syne", serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 4;
+    ctx.fillText(movie.title, 64, height - 108);
+
+    ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
-    ctx.fillText(`DIR. ${movie.director.toUpperCase()}   |   MUSIC: ${movie.musicDirector.toUpperCase()}`, 60, height - 42);
 
-    // 4. Bottom-Right: Circular dark button with white arrow → (exact Jesper Landberg button)
-    const btnX = width - 85;
-    const btnY = height - 80;
-    const btnRadius = 32;
+    // Subtitle / Dialogue Quote
+    ctx.font = 'italic 500 24px "Playfair Display", "Inter", serif';
+    ctx.fillStyle = 'rgba(240, 240, 245, 0.9)';
+    const quoteText = movie.iconicDialogue.length > 75 
+      ? `“ ${movie.iconicDialogue.slice(0, 72)}... ”`
+      : `“ ${movie.iconicDialogue} ”`;
+    ctx.fillText(quoteText, 64, height - 66);
 
-    ctx.fillStyle = '#0a0a0c';
+    // Director & Score line
+    ctx.font = '700 16px "JetBrains Mono", monospace';
+    ctx.fillStyle = movie.accentColor;
+    ctx.fillText(`DIR.  ${movie.director.toUpperCase()}   |   MUSIC.  ${movie.musicDirector.toUpperCase()}`, 64, height - 34);
+
+    // D. Bottom-Right Jesper Landberg Circular Action Button with Arrow
+    const btnRadius = 38;
+    const btnCenterX = width - 64 - btnRadius;
+    const btnCenterY = height - 60;
+
+    // Outer subtle glow
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(btnX, btnY, btnRadius, 0, Math.PI * 2);
+    ctx.arc(btnCenterX, btnCenterY, btnRadius + 4, 0, Math.PI * 2);
+    ctx.fillStyle = `${movie.accentColor}22`;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
 
-    // Draw Arrow →
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    // Dark solid button circle with accent border
     ctx.beginPath();
-    ctx.moveTo(btnX - 10, btnY);
-    ctx.lineTo(btnX + 8, btnY);
-    ctx.lineTo(btnX + 2, btnY - 6);
-    ctx.moveTo(btnX + 8, btnY);
-    ctx.lineTo(btnX + 2, btnY + 6);
+    ctx.arc(btnCenterX, btnCenterY, btnRadius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(12, 12, 16, 0.88)';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
     ctx.stroke();
 
+    // Arrow icon '→'
+    ctx.font = '600 32px "Inter", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('→', btnCenterX, btnCenterY - 1);
     ctx.restore();
-  }
-
-  static roundRect(ctx, x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
   }
 }

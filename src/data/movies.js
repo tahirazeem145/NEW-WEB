@@ -1,3 +1,13 @@
+/**
+ * Helper to dynamically resolve poster assets for both local development and subpath cloud hosting (GitHub Pages)
+ */
+export const resolvePosterUrl = (filename) => {
+  const base = import.meta.env.BASE_URL || './';
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  const cleanFile = filename.replace(/^\/+/, '');
+  return `${cleanBase}${cleanFile}`;
+};
+
 export const MOVIES = [
   {
     id: 'kgf-1',
@@ -8,7 +18,7 @@ export const MOVIES = [
     rating: '8.2',
     certification: 'UA / Action',
     duration: '2h 36m',
-    posterUrl: '/posters/kgf-1.jpg',
+    posterUrl: resolvePosterUrl('posters/kgf-1.jpg'),
     genres: ['Action', 'Crime', 'Period Drama'],
     director: 'Prashanth Neel',
     musicDirector: 'Ravi Basrur',
@@ -36,7 +46,7 @@ export const MOVIES = [
     rating: '8.3',
     certification: 'UA / Action Thriller',
     duration: '2h 48m',
-    posterUrl: '/posters/kgf-2.jpg',
+    posterUrl: resolvePosterUrl('posters/kgf-2.jpg'),
     genres: ['Action', 'Epic Crime', 'Drama'],
     director: 'Prashanth Neel',
     musicDirector: 'Ravi Basrur',
@@ -64,7 +74,7 @@ export const MOVIES = [
     rating: '8.1',
     certification: 'A / Cult Romantic Drama',
     duration: '2h 55m',
-    posterUrl: '/posters/7g-rainbow-colony.jpg',
+    posterUrl: resolvePosterUrl('posters/7g-rainbow-colony.jpg'),
     genres: ['Romantic Drama', 'Coming-of-Age', 'Cult Classic'],
     director: 'Selvaraghavan',
     musicDirector: 'Yuvan Shankar Raja',
@@ -92,7 +102,7 @@ export const MOVIES = [
     rating: '7.8',
     certification: 'U / Family Drama',
     duration: '2h 45m',
-    posterUrl: '/posters/yaaradi-nee-mohini.jpg',
+    posterUrl: resolvePosterUrl('posters/yaaradi-nee-mohini.jpg'),
     genres: ['Romance', 'Comedy', 'Family Drama'],
     director: 'Mithran Jawahar (Story by Selvaraghavan)',
     musicDirector: 'Yuvan Shankar Raja',
@@ -120,7 +130,7 @@ export const MOVIES = [
     rating: '7.9',
     certification: 'U / Youth Anthem Action',
     duration: '2h 13m',
-    posterUrl: '/posters/vip.jpg',
+    posterUrl: resolvePosterUrl('posters/vip.jpg'),
     genres: ['Action Comedy', 'Drama', 'Youth Anthem'],
     director: 'Velraj',
     musicDirector: 'Anirudh Ravichander',
@@ -148,7 +158,7 @@ export const MOVIES = [
     rating: '7.4',
     certification: 'U/A / Psychological Romance',
     duration: '2h 25m',
-    posterUrl: '/posters/3-moonu.jpg',
+    posterUrl: resolvePosterUrl('posters/3-moonu.jpg'),
     genres: ['Romantic Psychological Drama', 'Musical', 'Mystery'],
     director: 'Aishwarya Rajinikanth',
     musicDirector: 'Anirudh Ravichander',
@@ -176,7 +186,7 @@ export const MOVIES = [
     rating: '7.0',
     certification: 'UA / Horror Comedy',
     duration: '2h 45m',
-    posterUrl: '/posters/kanchana.jpg',
+    posterUrl: resolvePosterUrl('posters/kanchana.jpg'),
     genres: ['Horror Comedy', 'Revenge Thriller', 'Action'],
     director: 'Raghava Lawrence',
     musicDirector: 'S. Thaman',
@@ -204,7 +214,7 @@ export const MOVIES = [
     rating: '7.7',
     certification: 'U / Romantic Musical',
     duration: '2h 42m',
-    posterUrl: '/posters/minnale.jpg',
+    posterUrl: resolvePosterUrl('posters/minnale.jpg'),
     genres: ['Romantic Musical', 'Comedy', 'Drama'],
     director: 'Gautham Vasudev Menon',
     musicDirector: 'Harris Jayaraj',
@@ -232,7 +242,7 @@ export const MOVIES = [
     rating: '9.5',
     certification: 'TV-MA / Crime Masterpiece',
     duration: '5 Seasons / 62 Episodes',
-    posterUrl: '/posters/breaking-bad.jpg',
+    posterUrl: resolvePosterUrl('posters/breaking-bad.jpg'),
     genres: ['Crime Drama', 'Thriller', 'Tragedy'],
     director: 'Vince Gilligan',
     musicDirector: 'Dave Porter',
@@ -260,7 +270,7 @@ export const MOVIES = [
     rating: '9.1',
     certification: 'TV-MA / Dark Fantasy Anime',
     duration: '4 Seasons / 89 Episodes',
-    posterUrl: '/posters/attack-on-titan.jpg',
+    posterUrl: resolvePosterUrl('posters/attack-on-titan.jpg'),
     genres: ['Dark Fantasy', 'Post-Apocalyptic', 'Action', 'Psychological'],
     director: 'Tetsurō Araki / Yuichiro Hayashi (Creator: Hajime Isayama)',
     musicDirector: 'Hiroyuki Sawano / Kohta Yamamoto',
