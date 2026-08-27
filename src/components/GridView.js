@@ -4,7 +4,7 @@ import { SoundFX } from '../engine/SoundFX.js';
 /**
  * GridView Component
  * Renders the complete 10-movie cinema catalog with dynamic genre filtering
- * when user toggles to the "ALL MOVIES" view mode.
+ * and official photographic movie posters when in "ALL MOVIES" view mode.
  */
 export class GridView {
   constructor(container, movies, onMovieClick) {
@@ -38,14 +38,21 @@ export class GridView {
     `).join('');
 
     const cardsHtml = filteredMovies.map((m, idx) => `
-      <div class="project-card" data-id="${m.id}" data-index="${idx}" style="background: linear-gradient(135deg, ${m.accentColor}15 0%, #121214 100%); border-color: ${m.accentColor}33;">
-        <div class="card-content">
-          <div class="card-meta">
-            <span style="color: ${m.accentColor}; font-weight: 700;">${m.index} / ${m.certification}</span>
-            <span style="color: #fff; font-weight: 700;">★ ${m.rating}</span>
+      <div class="project-card" data-id="${m.id}" data-index="${idx}" style="border-color: ${m.accentColor}33;">
+        <div class="card-media-wrapper" style="position: relative; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; background: #000;">
+          <img src="${m.posterUrl}" alt="${m.title} Official Movie Poster" class="card-media" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);" />
+          
+          <div style="position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.75); border: 1px solid ${m.accentColor}88; color: ${m.accentColor}; font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-full);">
+            ${m.index} • ${m.certification}
           </div>
 
-          <h3 class="card-title" style="font-family: var(--font-display); font-size: 26px;">${m.title}</h3>
+          <div style="position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.75); border: 1px solid ${m.accentColor}; color: #fff; font-family: var(--font-sans); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-full);">
+            ★ ${m.rating}
+          </div>
+        </div>
+
+        <div class="card-content">
+          <h3 class="card-title" style="font-family: var(--font-display); font-size: 24px;">${m.title}</h3>
           
           <p style="font-family: var(--font-sans); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: ${m.accentColor}; font-weight: 600;">
             ${m.tagline}

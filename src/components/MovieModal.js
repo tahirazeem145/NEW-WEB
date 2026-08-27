@@ -3,7 +3,7 @@ import { SoundFX } from '../engine/SoundFX.js';
 /**
  * MovieModal Component
  * Immersive cinematic lightbox showing in-depth movie details,
- * iconic dialogues, cast & crew, metrics, and trailer actions.
+ * official poster banner, iconic dialogues, cast & crew, metrics, and trailer actions.
  */
 export class MovieModal {
   constructor(container) {
@@ -72,6 +72,12 @@ export class MovieModal {
     `).join('');
 
     this.modal.innerHTML = `
+      <!-- Official High-Res Poster Hero Banner -->
+      <div class="case-study-media-banner" style="position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 460px; overflow: hidden; border-radius: var(--radius-lg); margin-bottom: 36px; border: 1px solid ${movie.accentColor}33; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
+        <img src="${movie.posterUrl}" alt="${movie.title} Poster Banner" style="width: 100%; height: 100%; object-fit: cover;" />
+        <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 60%; background: linear-gradient(to top, rgba(14,14,16,0.95), transparent);"></div>
+      </div>
+
       <div class="case-study-hero">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
           <span class="case-study-badge" style="color: ${movie.accentColor}; background: ${movie.accentColor}18; border: 1px solid ${movie.accentColor}33;">
