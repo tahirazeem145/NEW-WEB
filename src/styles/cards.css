@@ -1,0 +1,158 @@
+/* Project Cards Styles (for Grid View & Texture Rendering) */
+.project-card {
+  position: relative;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--bg-glass-border);
+  transition: transform var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(234, 46, 21, 0.1);
+}
+
+.card-media-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #0f0f0f;
+}
+
+.card-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-slow);
+}
+
+.project-card:hover .card-media {
+  transform: scale(1.05);
+}
+
+.card-overlay-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: var(--accent-red);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.card-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-grow: 1;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.card-title {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.card-description {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.card-tag {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Card-Specific Themes */
+.card-theme-griflan {
+  background: linear-gradient(135deg, #181515 0%, #0d0c0c 100%);
+}
+
+.card-theme-nathan {
+  background: linear-gradient(135deg, #121817 0%, #0a0d0d 100%);
+}
+
+.card-theme-casa {
+  background: linear-gradient(135deg, #1c1813 0%, #0d0b09 100%);
+}
+
+.card-theme-echovoid {
+  background: linear-gradient(135deg, #111420 0%, #090a10 100%);
+}
+
+.card-theme-monolith {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+}
+
+.card-theme-velox {
+  background: linear-gradient(135deg, #1a1519 0%, #0d090d 100%);
+}
+
+/* Interactive Confessions Sticky Preview */
+.confession-card-preview {
+  display: flex;
+  gap: 12px;
+  overflow: hidden;
+  padding: 12px 0;
+}
+
+.confession-sticker {
+  flex: 1;
+  min-width: 140px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.confession-sticker.red {
+  background: #ea2e15;
+  color: #ffffff;
+}
+
+.confession-sticker.beige {
+  background: #f1ebd9;
+  color: #1a1a1a;
+}
