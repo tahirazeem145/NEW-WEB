@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { gsap } from 'gsap';
 import { CylinderCarousel } from './CylinderCarousel.js';
 import { GridFloor } from './GridFloor.js';
 import { Particles } from './Particles.js';
@@ -7,7 +8,7 @@ import { SoundFX } from '../engine/SoundFX.js';
 /**
  * World
  * Orchestrates the Three.js 3D movie gallery scene, camera, lights, rendering loop,
- * and passes physics & raycasting data between modules.
+ * and executes camera zoom-in / 3D tilt transitions on movie card clicks.
  */
 export class World {
   constructor(canvasElement, movies, physics, inputManager) {
@@ -27,6 +28,7 @@ export class World {
 
     this.clock = new THREE.Clock();
     this.isPaused = false;
+    this.isZooming = false;
     this.lastActiveIndex = 0;
 
     this.cameraTarget = new THREE.Vector3(0, 0, 0);
@@ -75,9 +77,9 @@ export class World {
     this.gridFloor = new GridFloor(this.scene);
     this.particles = new Particles(this.scene, 350);
     this.carousel = new CylinderCarousel(this.scene, this.movies, {
-      radius: 12.5,
-      cardWidth: 8.8,
-      cardHeight: 5.4
+      radius: 13.5,
+      cardWidth: 9.4,
+      cardHeight: 5.6
     });
 
     // 6. Bind Input
@@ -90,28 +92,77 @@ export class World {
 
   bindInputs() {
     this.input.on('move', ({ ndc }) => {
-      this.parallaxTarget.x = ndc.x * 0.4;
-      this.parallaxTarget.y = ndc.y * 0.2;
+      if (!this.isZooming) {
+        this.parallaxTarget.x = ndc.x * 0.4;
+        this.parallaxTarget.y = ndc.y * 0.2;
+      }
     });
 
     this.input.on('drag', ({ dx }) => {
-      this.physics.applyDrag(dx);
+      if (!this.isZooming) {
+        this.physics.applyDrag(dx);
+      }
     });
 
     this.input.on('wheel', ({ deltaY }) => {
-      this.physics.applyWheel(deltaY);
+      if (!this.isZooming) {
+        this.physics.applyWheel(deltaY);
+      }
     });
 
     this.input.on('click', ({ ndc }) => {
+      if (this.isZooming) return;
+
       this.raycaster.setFromCamera(ndc, this.camera);
-      const clickedMovie = this.carousel.checkIntersection(this.raycaster);
-      if (clickedMovie && this.onMovieClickCallback) {
+      const hitResult = this.carousel.checkIntersection(this.raycaster);
+
+      if (hitResult && hitResult.movie) {
         SoundFX.playModalOpen();
-        this.onMovieClickCallback(clickedMovie);
+        this.executeCardZoomIn(hitResult);
       }
     });
 
     window.addEventListener('resize', this.onResize.bind(this));
+  }
+
+  /**
+   * Executes cinematic 3D Tilt and Camera Zoom-in towards the clicked card
+   */
+  executeCardZoomIn(hitResult) {
+    this.isZooming = true;
+    const { movie, card, uv } = hitResult;
+
+    // Animate camera forward and target card
+    gsap.to(this.camera.position, {
+      z: 7.6,
+      y: 0.15,
+      duration: 0.7,
+      ease: 'power3.out'
+    });
+
+    // Trigger card tilt & scale on the carousel
+    this.carousel.zoomInCard(card, uv, () => {
+      if (this.onMovieClickCallback) {
+        this.onMovieClickCallback(movie);
+      }
+    });
+  }
+
+  /**
+   * Smoothly reset camera and card zoom when modal is closed
+   */
+  resetCardZoom() {
+    gsap.to(this.camera.position, {
+      z: window.innerWidth < 768 ? 11.2 : 9.4,
+      y: 0.35,
+      duration: 0.6,
+      ease: 'power2.inOut',
+      onComplete: () => {
+        this.isZooming = false;
+      }
+    });
+
+    this.carousel.resetZoom();
   }
 
   onResize() {
@@ -141,15 +192,15 @@ export class World {
     const elapsedTime = this.clock.getElapsedTime();
     const { current, velocity } = this.physics.update();
 
-    // Raycast hover check to pass UVs to liquid distortion shader
+    // Raycast hover check to pass UVs to liquid distortion shader & 3D tilt
     this.raycaster.setFromCamera(this.input.mouse, this.camera);
-    const hoveredMovie = this.carousel.checkIntersection(this.raycaster);
+    const hitResult = this.carousel.checkIntersection(this.raycaster);
 
     // Update body cursor class based on state
     if (this.input.isPointerDown) {
       document.body.classList.add('cursor-drag');
       document.body.classList.remove('cursor-hover', 'cursor-view');
-    } else if (hoveredMovie) {
+    } else if (hitResult) {
       document.body.classList.add('cursor-view');
       document.body.classList.remove('cursor-hover', 'cursor-drag');
     } else {
@@ -170,22 +221,26 @@ export class World {
       }
     }
 
-    // Smooth camera parallax
-    this.parallaxCurrent.x += (this.parallaxTarget.x - this.parallaxCurrent.x) * 0.05;
-    this.parallaxCurrent.y += (this.parallaxTarget.y - this.parallaxCurrent.y) * 0.05;
-    this.camera.position.x = this.parallaxCurrent.x;
-    this.camera.position.y = 0.35 + this.parallaxCurrent.y;
+    // Smooth camera parallax (disabled while zooming in)
+    if (!this.isZooming) {
+      this.parallaxCurrent.x += (this.parallaxTarget.x - this.parallaxCurrent.x) * 0.05;
+      this.parallaxCurrent.y += (this.parallaxTarget.y - this.parallaxCurrent.y) * 0.05;
+      this.camera.position.x = this.parallaxCurrent.x;
+      this.camera.position.y = 0.35 + this.parallaxCurrent.y;
+    }
+    
     this.camera.lookAt(this.cameraTarget);
-
     this.renderer.render(this.scene, this.camera);
   }
 
   nextSlide() {
+    if (this.isZooming) return;
     const spacing = this.carousel.angleStep;
     this.physics.applyDelta(spacing);
   }
 
   prevSlide() {
+    if (this.isZooming) return;
     const spacing = this.carousel.angleStep;
     this.physics.applyDelta(-spacing);
   }
