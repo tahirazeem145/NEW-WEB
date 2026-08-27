@@ -7,8 +7,8 @@ import { SoundFX } from '../engine/SoundFX.js';
 
 /**
  * World
- * Orchestrates the Three.js 3D movie gallery scene, camera, lights, rendering loop,
- * and executes camera zoom-in / 3D tilt transitions on movie card clicks.
+ * Coordinates the wide panorama 3D movie gallery, perspective camera,
+ * and executes camera zoom-in / 3D tilt transitions on card clicks.
  */
 export class World {
   constructor(canvasElement, movies, physics, inputManager) {
@@ -44,13 +44,13 @@ export class World {
   init() {
     // 1. Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color('#080808');
-    this.scene.fog = new THREE.FogExp2('#080808', 0.032);
+    this.scene.background = new THREE.Color('#050507');
+    this.scene.fog = new THREE.FogExp2('#050507', 0.026);
 
-    // 2. Camera
+    // 2. Camera - Eye level wide perspective
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(48, aspect, 0.1, 100);
-    this.camera.position.set(0, 0.35, 9.4);
+    this.camera = new THREE.PerspectiveCamera(46, aspect, 0.1, 100);
+    this.camera.position.set(0, 0.05, 9.8);
     this.camera.lookAt(this.cameraTarget);
 
     // 3. Renderer
@@ -63,23 +63,23 @@ export class World {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.toneMappingExposure = 1.12;
 
     // 4. Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
     this.scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(5, 10, 7);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
+    dirLight.position.set(5, 10, 8);
     this.scene.add(dirLight);
 
     // 5. 3D Modules
     this.gridFloor = new GridFloor(this.scene);
-    this.particles = new Particles(this.scene, 350);
+    this.particles = new Particles(this.scene, 300);
     this.carousel = new CylinderCarousel(this.scene, this.movies, {
-      radius: 13.5,
-      cardWidth: 9.4,
-      cardHeight: 5.6
+      radius: 19.5,
+      cardWidth: 10.4,
+      cardHeight: 6.2
     });
 
     // 6. Bind Input
@@ -93,8 +93,8 @@ export class World {
   bindInputs() {
     this.input.on('move', ({ ndc }) => {
       if (!this.isZooming) {
-        this.parallaxTarget.x = ndc.x * 0.4;
-        this.parallaxTarget.y = ndc.y * 0.2;
+        this.parallaxTarget.x = ndc.x * 0.35;
+        this.parallaxTarget.y = ndc.y * 0.18;
       }
     });
 
@@ -125,22 +125,17 @@ export class World {
     window.addEventListener('resize', this.onResize.bind(this));
   }
 
-  /**
-   * Executes cinematic 3D Tilt and Camera Zoom-in towards the clicked card
-   */
   executeCardZoomIn(hitResult) {
     this.isZooming = true;
     const { movie, card, uv } = hitResult;
 
-    // Animate camera forward and target card
     gsap.to(this.camera.position, {
-      z: 7.6,
-      y: 0.15,
+      z: 7.8,
+      y: 0.0,
       duration: 0.7,
       ease: 'power3.out'
     });
 
-    // Trigger card tilt & scale on the carousel
     this.carousel.zoomInCard(card, uv, () => {
       if (this.onMovieClickCallback) {
         this.onMovieClickCallback(movie);
@@ -148,13 +143,10 @@ export class World {
     });
   }
 
-  /**
-   * Smoothly reset camera and card zoom when modal is closed
-   */
   resetCardZoom() {
     gsap.to(this.camera.position, {
-      z: window.innerWidth < 768 ? 11.2 : 9.4,
-      y: 0.35,
+      z: window.innerWidth < 768 ? 11.5 : 9.8,
+      y: 0.05,
       duration: 0.6,
       ease: 'power2.inOut',
       onComplete: () => {
@@ -173,11 +165,11 @@ export class World {
     this.camera.aspect = width / height;
     
     if (width < 768) {
-      this.camera.fov = 58;
-      this.camera.position.z = 11.2;
+      this.camera.fov = 56;
+      this.camera.position.z = 11.5;
     } else {
-      this.camera.fov = 48;
-      this.camera.position.z = 9.4;
+      this.camera.fov = 46;
+      this.camera.position.z = 9.8;
     }
 
     this.camera.updateProjectionMatrix();
@@ -192,11 +184,9 @@ export class World {
     const elapsedTime = this.clock.getElapsedTime();
     const { current, velocity } = this.physics.update();
 
-    // Raycast hover check to pass UVs to liquid distortion shader & 3D tilt
     this.raycaster.setFromCamera(this.input.mouse, this.camera);
     const hitResult = this.carousel.checkIntersection(this.raycaster);
 
-    // Update body cursor class based on state
     if (this.input.isPointerDown) {
       document.body.classList.add('cursor-drag');
       document.body.classList.remove('cursor-hover', 'cursor-view');
@@ -207,12 +197,10 @@ export class World {
       document.body.classList.remove('cursor-drag', 'cursor-view');
     }
 
-    // Update 3D Modules
     this.carousel.update(current, velocity, elapsedTime);
     this.gridFloor.update(elapsedTime, velocity);
     this.particles.update(elapsedTime, velocity);
 
-    // Track active movie index
     if (this.carousel.selectedIndex !== this.lastActiveIndex) {
       this.lastActiveIndex = this.carousel.selectedIndex;
       SoundFX.playSlideTick();
@@ -221,12 +209,11 @@ export class World {
       }
     }
 
-    // Smooth camera parallax (disabled while zooming in)
     if (!this.isZooming) {
       this.parallaxCurrent.x += (this.parallaxTarget.x - this.parallaxCurrent.x) * 0.05;
       this.parallaxCurrent.y += (this.parallaxTarget.y - this.parallaxCurrent.y) * 0.05;
       this.camera.position.x = this.parallaxCurrent.x;
-      this.camera.position.y = 0.35 + this.parallaxCurrent.y;
+      this.camera.position.y = 0.05 + this.parallaxCurrent.y;
     }
     
     this.camera.lookAt(this.cameraTarget);
