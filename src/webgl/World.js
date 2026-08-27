@@ -6,13 +6,13 @@ import { SoundFX } from '../engine/SoundFX.js';
 
 /**
  * World
- * Orchestrates the Three.js 3D scene, camera, lights, rendering loop,
+ * Orchestrates the Three.js 3D movie gallery scene, camera, lights, rendering loop,
  * and passes physics & raycasting data between modules.
  */
 export class World {
-  constructor(canvasElement, projects, physics, inputManager) {
+  constructor(canvasElement, movies, physics, inputManager) {
     this.canvas = canvasElement;
-    this.projects = projects;
+    this.movies = movies;
     this.physics = physics;
     this.input = inputManager;
 
@@ -33,7 +33,7 @@ export class World {
     this.parallaxTarget = { x: 0, y: 0 };
     this.parallaxCurrent = { x: 0, y: 0 };
 
-    this.onCardClickCallback = null;
+    this.onMovieClickCallback = null;
     this.onActiveChangeCallback = null;
 
     this.init();
@@ -43,12 +43,12 @@ export class World {
     // 1. Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color('#080808');
-    this.scene.fog = new THREE.FogExp2('#080808', 0.035);
+    this.scene.fog = new THREE.FogExp2('#080808', 0.032);
 
     // 2. Camera
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(48, aspect, 0.1, 100);
-    this.camera.position.set(0, 0.4, 9.2);
+    this.camera.position.set(0, 0.35, 9.4);
     this.camera.lookAt(this.cameraTarget);
 
     // 3. Renderer
@@ -61,7 +61,7 @@ export class World {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
+    this.renderer.toneMappingExposure = 1.15;
 
     // 4. Lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
@@ -71,11 +71,11 @@ export class World {
     dirLight.position.set(5, 10, 7);
     this.scene.add(dirLight);
 
-    // 5. Modules
+    // 5. 3D Modules
     this.gridFloor = new GridFloor(this.scene);
-    this.particles = new Particles(this.scene, 300);
-    this.carousel = new CylinderCarousel(this.scene, this.projects, {
-      radius: 11.5,
+    this.particles = new Particles(this.scene, 350);
+    this.carousel = new CylinderCarousel(this.scene, this.movies, {
+      radius: 12.5,
       cardWidth: 8.8,
       cardHeight: 5.4
     });
@@ -83,7 +83,7 @@ export class World {
     // 6. Bind Input
     this.bindInputs();
 
-    // 7. Start Render Loop
+    // 7. Render Loop
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
   }
@@ -104,10 +104,10 @@ export class World {
 
     this.input.on('click', ({ ndc }) => {
       this.raycaster.setFromCamera(ndc, this.camera);
-      const clickedProject = this.carousel.checkIntersection(this.raycaster);
-      if (clickedProject && this.onCardClickCallback) {
+      const clickedMovie = this.carousel.checkIntersection(this.raycaster);
+      if (clickedMovie && this.onMovieClickCallback) {
         SoundFX.playModalOpen();
-        this.onCardClickCallback(clickedProject);
+        this.onMovieClickCallback(clickedMovie);
       }
     });
 
@@ -121,13 +121,12 @@ export class World {
 
     this.camera.aspect = width / height;
     
-    // Adjust camera distance for mobile vs desktop
     if (width < 768) {
-      this.camera.fov = 56;
-      this.camera.position.z = 11.0;
+      this.camera.fov = 58;
+      this.camera.position.z = 11.2;
     } else {
       this.camera.fov = 48;
-      this.camera.position.z = 9.2;
+      this.camera.position.z = 9.4;
     }
 
     this.camera.updateProjectionMatrix();
@@ -142,15 +141,15 @@ export class World {
     const elapsedTime = this.clock.getElapsedTime();
     const { current, velocity } = this.physics.update();
 
-    // Raycast hover check
+    // Raycast hover check to pass UVs to liquid distortion shader
     this.raycaster.setFromCamera(this.input.mouse, this.camera);
-    const hoveredProject = this.carousel.checkIntersection(this.raycaster);
+    const hoveredMovie = this.carousel.checkIntersection(this.raycaster);
 
     // Update body cursor class based on state
     if (this.input.isPointerDown) {
       document.body.classList.add('cursor-drag');
       document.body.classList.remove('cursor-hover', 'cursor-view');
-    } else if (hoveredProject) {
+    } else if (hoveredMovie) {
       document.body.classList.add('cursor-view');
       document.body.classList.remove('cursor-hover', 'cursor-drag');
     } else {
@@ -162,12 +161,12 @@ export class World {
     this.gridFloor.update(elapsedTime, velocity);
     this.particles.update(elapsedTime, velocity);
 
-    // Check active project index change
+    // Track active movie index
     if (this.carousel.selectedIndex !== this.lastActiveIndex) {
       this.lastActiveIndex = this.carousel.selectedIndex;
       SoundFX.playSlideTick();
       if (this.onActiveChangeCallback) {
-        this.onActiveChangeCallback(this.carousel.selectedIndex, this.carousel.getActiveProject());
+        this.onActiveChangeCallback(this.carousel.selectedIndex, this.carousel.getActiveMovie());
       }
     }
 
@@ -175,7 +174,7 @@ export class World {
     this.parallaxCurrent.x += (this.parallaxTarget.x - this.parallaxCurrent.x) * 0.05;
     this.parallaxCurrent.y += (this.parallaxTarget.y - this.parallaxCurrent.y) * 0.05;
     this.camera.position.x = this.parallaxCurrent.x;
-    this.camera.position.y = 0.4 + this.parallaxCurrent.y;
+    this.camera.position.y = 0.35 + this.parallaxCurrent.y;
     this.camera.lookAt(this.cameraTarget);
 
     this.renderer.render(this.scene, this.camera);
@@ -191,13 +190,13 @@ export class World {
     this.physics.applyDelta(-spacing);
   }
 
-  goToProjectIndex(index) {
+  goToMovieIndex(index) {
     const spacing = this.carousel.angleStep;
     this.physics.goToIndex(index, spacing);
   }
 
-  onCardClick(cb) {
-    this.onCardClickCallback = cb;
+  onMovieClick(cb) {
+    this.onMovieClickCallback = cb;
   }
 
   onActiveChange(cb) {
