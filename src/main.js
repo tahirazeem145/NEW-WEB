@@ -51,7 +51,11 @@ class MovieGalleryApp {
 
     // 3. Initialize Interactive Components
     this.cursor = new Cursor();
-    this.movieModal = new MovieModal(this.modalsContainer);
+    this.movieModal = new MovieModal(this.modalsContainer, {
+      onClose: () => {
+        this.world.resetCardZoom();
+      }
+    });
     this.aboutDrawer = new ProfileDrawer(this.modalsContainer);
     this.newsletterModal = new NewsletterModal(this.modalsContainer);
 
