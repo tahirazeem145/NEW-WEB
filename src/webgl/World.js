@@ -3,12 +3,15 @@ import { gsap } from 'gsap';
 import { CylinderCarousel } from './CylinderCarousel.js';
 import { GridFloor } from './GridFloor.js';
 import { Particles } from './Particles.js';
+import { SpaceBackground } from './SpaceBackground.js';
 import { SoundFX } from '../engine/SoundFX.js';
 
 /**
  * World
- * Coordinates the wide panorama 3D movie gallery, perspective camera,
- * and executes camera zoom-in / 3D tilt transitions on card clicks.
+ * Coordinates the 3D space-level movie gallery environment with:
+ * - Deep Space Galactic Nebula Skydome & Twinkling Star Clusters
+ * - 3D Curved Panorama Ribbon & GLSL Liquid Distortion
+ * - Dynamic Camera Parallax & Smooth Zoom-in Target Focusing
  */
 export class World {
   constructor(canvasElement, movies, physics, inputManager) {
@@ -22,6 +25,7 @@ export class World {
     this.renderer = null;
     this.raycaster = new THREE.Raycaster();
 
+    this.spaceBackground = null;
     this.carousel = null;
     this.gridFloor = null;
     this.particles = null;
@@ -44,12 +48,12 @@ export class World {
   init() {
     // 1. Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color('#050507');
-    this.scene.fog = new THREE.FogExp2('#050507', 0.026);
+    this.scene.background = new THREE.Color('#030308');
+    this.scene.fog = new THREE.FogExp2('#030308', 0.018);
 
-    // 2. Camera - Eye level wide perspective
+    // 2. Camera - Eye level wide panorama
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(46, aspect, 0.1, 100);
+    this.camera = new THREE.PerspectiveCamera(46, aspect, 0.1, 150);
     this.camera.position.set(0, 0.05, 9.8);
     this.camera.lookAt(this.cameraTarget);
 
@@ -63,19 +67,24 @@ export class World {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.12;
+    this.renderer.toneMappingExposure = 1.15;
 
-    // 4. Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
+    // 4. Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     this.scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
-    dirLight.position.set(5, 10, 8);
+    const dirLight = new THREE.DirectionalLight(0xd4e2ff, 0.9);
+    dirLight.position.set(5, 12, 8);
     this.scene.add(dirLight);
 
-    // 5. 3D Modules
+    const blueRimLight = new THREE.DirectionalLight(0x4466ff, 0.6);
+    blueRimLight.position.set(-8, -4, -6);
+    this.scene.add(blueRimLight);
+
+    // 5. 3D Space Modules
+    this.spaceBackground = new SpaceBackground(this.scene);
     this.gridFloor = new GridFloor(this.scene);
-    this.particles = new Particles(this.scene, 300);
+    this.particles = new Particles(this.scene, 350);
     this.carousel = new CylinderCarousel(this.scene, this.movies, {
       radius: 19.5,
       cardWidth: 10.4,
@@ -197,6 +206,8 @@ export class World {
       document.body.classList.remove('cursor-drag', 'cursor-view');
     }
 
+    // Update Space Environment & 3D Modules
+    this.spaceBackground.update(elapsedTime, velocity);
     this.carousel.update(current, velocity, elapsedTime);
     this.gridFloor.update(elapsedTime, velocity);
     this.particles.update(elapsedTime, velocity);
@@ -257,6 +268,7 @@ export class World {
   destroy() {
     this.isPaused = true;
     window.removeEventListener('resize', this.onResize);
+    this.spaceBackground.destroy();
     this.carousel.destroy();
     this.gridFloor.destroy();
     this.particles.destroy();
