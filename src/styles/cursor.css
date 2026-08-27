@@ -1,0 +1,108 @@
+/* Custom Magnetic Fluid Cursor */
+.custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  background: var(--accent-red);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: var(--z-cursor);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease, background 0.3s ease, border-radius 0.3s ease, opacity 0.3s ease;
+  mix-blend-mode: normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-cursor-follower {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: calc(var(--z-cursor) - 1);
+  transform: translate(-50%, -50%);
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              height 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.3s ease,
+              background 0.3s ease,
+              transform 0.1s ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cursor-text {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffffff;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+/* Cursor State Classes */
+body.cursor-hover .custom-cursor {
+  transform: translate(-50%, -50%) scale(1.8);
+  background: #ffffff;
+}
+
+body.cursor-hover .custom-cursor-follower {
+  width: 60px;
+  height: 60px;
+  border-color: var(--accent-red);
+  background: rgba(234, 46, 21, 0.1);
+}
+
+body.cursor-drag .custom-cursor {
+  opacity: 0;
+}
+
+body.cursor-drag .custom-cursor-follower {
+  width: 80px;
+  height: 80px;
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(8px);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+body.cursor-drag .cursor-text {
+  opacity: 1;
+  transform: scale(1);
+}
+
+body.cursor-view .custom-cursor {
+  opacity: 0;
+}
+
+body.cursor-view .custom-cursor-follower {
+  width: 90px;
+  height: 90px;
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+  box-shadow: 0 0 30px rgba(234, 46, 21, 0.4);
+}
+
+body.cursor-view .cursor-text {
+  opacity: 1;
+  transform: scale(1);
+  color: #ffffff;
+}
+
+/* Hide custom cursor on mobile touch screens */
+@media (pointer: coarse) {
+  .custom-cursor,
+  .custom-cursor-follower {
+    display: none !important;
+  }
+}
