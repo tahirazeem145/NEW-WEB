@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Jesper Landberg — 3D Curved Portfolio Showcase</title>
+    <meta name="description" content="Interactive 3D WebGL curved cylinder portfolio showcase featuring spatial typography, real-time shaders, and tactile micro-interactions." />
+    
+    <!-- Open Graph Meta -->
+    <meta property="og:title" content="Jesper Landberg — 3D Curved Portfolio Showcase" />
+    <meta property="og:description" content="Award-winning 3D WebGL cylindrical portfolio experience." />
+    <meta property="og:type" content="website" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Italiana&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Syne:wght@400..800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/src/styles/index.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- WebGL Canvas -->
+      <canvas id="webgl-canvas"></canvas>
+
+      <!-- Drag Indicator / Interaction Hint -->
+      <div class="drag-guide" id="drag-guide">
+        <span class="drag-guide-icon">⟵ DRAG TO EXPLORE ⟶</span>
+      </div>
+
+      <!-- Modals Container -->
+      <div id="modals-container"></div>
+    </div>
+
+    <!-- Main Entry Module -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
