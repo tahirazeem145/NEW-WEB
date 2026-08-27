@@ -1,0 +1,63 @@
+:root {
+  /* Color Palette */
+  --bg-primary: #080808;
+  --bg-secondary: #111111;
+  --bg-surface: #181818;
+  --bg-surface-elevated: #222222;
+  --bg-glass: rgba(18, 18, 18, 0.75);
+  --bg-glass-card: rgba(26, 26, 26, 0.65);
+  --bg-glass-border: rgba(255, 255, 255, 0.08);
+  --bg-glass-highlight: rgba(255, 255, 255, 0.15);
+
+  /* Accent Colors */
+  --accent-red: #ea2e15;
+  --accent-red-hover: #ff3b20;
+  --accent-red-subtle: rgba(234, 46, 21, 0.15);
+  --accent-gold: #e5b974;
+  --accent-cyan: #3cd4c5;
+  --accent-white: #f5f5f7;
+  --accent-muted: #888888;
+  --accent-dark-card: #151515;
+
+  /* Text Colors */
+  --text-primary: #f0f0f2;
+  --text-secondary: #a0a0a5;
+  --text-tertiary: #66666a;
+  --text-inverse: #080808;
+
+  /* Typography */
+  --font-serif: 'Playfair Display', 'Italiana', Georgia, serif;
+  --font-sans: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --font-display: 'Syne', sans-serif;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* Border Radii */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 30px;
+  --radius-full: 9999px;
+
+  /* Z-Index Hierarchy */
+  --z-canvas: 1;
+  --z-grid-view: 10;
+  --z-hud: 50;
+  --z-overlay: 100;
+  --z-modal: 200;
+  --z-cursor: 9999;
+
+  /* Transitions */
+  --transition-fast: 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
