@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 
 /**
- * Particles — Low-Quantity Random Micro-Pixel Swarm
- * 140 subtle, tiny square micro-pixels wandering and floating freely
- * in true random 3D directions (independent 3-axis Brownian flight, no left-to-right drift).
+ * Particles — Minimalist Sparse Micro-Pixel Swarm
+ * 40 subtle, delicate micro-pixels wandering and floating freely
+ * in true random 3D directions across the cinema environment.
  */
 export class Particles {
-  constructor(scene, count = 140) {
+  constructor(scene, count = 40) {
     this.scene = scene;
     this.count = count;
     this.mesh = null;
@@ -21,10 +21,10 @@ export class Particles {
     const phaseOffsets = new Float32Array(this.count * 4);  // [phaseX, phaseY, phaseZ, colorType]
 
     for (let i = 0; i < this.count; i++) {
-      // Distributed widely in 3D volume around the camera and cards
-      const x = (Math.random() - 0.5) * 26.0;
-      const y = (Math.random() - 0.5) * 16.0;
-      const z = -2.0 + (Math.random() - 0.5) * 20.0;
+      // Widely distributed across 3D cinema space
+      const x = (Math.random() - 0.5) * 24.0;
+      const y = (Math.random() - 0.5) * 14.0;
+      const z = -1.0 + (Math.random() - 0.5) * 16.0;
 
       positions[i * 3] = x;
       positions[i * 3 + 1] = y;
@@ -34,17 +34,17 @@ export class Particles {
       initialPositions[i * 3 + 1] = y;
       initialPositions[i * 3 + 2] = z;
 
-      // Independent random 3D flight frequencies & amplitudes
-      flightVectors[i * 4] = 0.25 + Math.random() * 0.55;     // X wander frequency
-      flightVectors[i * 4 + 1] = 0.30 + Math.random() * 0.60; // Y wander frequency
-      flightVectors[i * 4 + 2] = 0.20 + Math.random() * 0.50; // Z wander frequency
-      flightVectors[i * 4 + 3] = 2.0 + Math.random() * 3.5;   // tiny micro-pixel size (2px - 5.5px)
+      // Independent 3D wander frequencies
+      flightVectors[i * 4] = 0.20 + Math.random() * 0.45;     // X wander frequency
+      flightVectors[i * 4 + 1] = 0.25 + Math.random() * 0.50; // Y wander frequency
+      flightVectors[i * 4 + 2] = 0.18 + Math.random() * 0.40; // Z wander frequency
+      flightVectors[i * 4 + 3] = 2.0 + Math.random() * 3.0;   // subtle micro-pixel size (2px - 5px)
 
       // Random phase offsets
       phaseOffsets[i * 4] = Math.random() * Math.PI * 2;
       phaseOffsets[i * 4 + 1] = Math.random() * Math.PI * 2;
       phaseOffsets[i * 4 + 2] = Math.random() * Math.PI * 2;
-      phaseOffsets[i * 4 + 3] = Math.random(); // color variation
+      phaseOffsets[i * 4 + 3] = Math.random();
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -77,26 +77,26 @@ export class Particles {
         float py = aPhaseOffset.y;
         float pz = aPhaseOffset.z;
 
-        // True random 3D Brownian wandering flight (no directional left-to-right drift)
+        // True random 3D Brownian wandering flight
         vec3 pos = aInitialPos;
         
-        pos.x += sin(uTime * fx + px) * 1.8 + cos(uTime * (fy * 0.6) + pz) * 0.9;
-        pos.y += cos(uTime * fy + py) * 1.6 + sin(uTime * (fz * 0.7) + px) * 0.8;
-        pos.z += sin(uTime * fz + pz) * 1.5 + cos(uTime * (fx * 0.5) + py) * 0.7;
+        pos.x += sin(uTime * fx + px) * 1.6 + cos(uTime * (fy * 0.6) + pz) * 0.8;
+        pos.y += cos(uTime * fy + py) * 1.4 + sin(uTime * (fz * 0.7) + px) * 0.7;
+        pos.z += sin(uTime * fz + pz) * 1.3 + cos(uTime * (fx * 0.5) + py) * 0.6;
 
         // Subtle displacement when dragging
-        pos.x += sin(pos.y * 1.5 + uTime * 2.0) * uVelocity * 0.4;
+        pos.x += sin(pos.y * 1.5 + uTime * 2.0) * uVelocity * 0.35;
 
         vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
         gl_Position = projectionMatrix * mvPosition;
 
-        // Perspective depth size attenuation for small micro-pixels
-        gl_PointSize = baseSize * (160.0 / -mvPosition.z);
-        gl_PointSize = clamp(gl_PointSize, 1.5, 8.0);
+        // Perspective depth size attenuation
+        gl_PointSize = baseSize * (150.0 / -mvPosition.z);
+        gl_PointSize = clamp(gl_PointSize, 1.5, 7.5);
 
         // Distance fog fade
         float dist = -mvPosition.z;
-        vDistanceAlpha = smoothstep(1.0, 3.5, dist) * (1.0 - smoothstep(18.0, 38.0, dist));
+        vDistanceAlpha = smoothstep(1.0, 3.5, dist) * (1.0 - smoothstep(16.0, 34.0, dist));
       }
     `;
 
@@ -111,7 +111,6 @@ export class Particles {
         // Sharp Square Micro-Pixel Shape
         vec2 p = gl_PointCoord - vec2(0.5);
 
-        // Discard fragments outside the square pixel box
         if (abs(p.x) > 0.44 || abs(p.y) > 0.44) {
           discard;
         }
@@ -120,14 +119,14 @@ export class Particles {
         float pixelGlow = 1.0 - max(abs(p.x), abs(p.y)) * 0.5;
 
         // Gentle random twinkle
-        float twinkle = 0.6 + 0.4 * sin(uTime * 3.5 * (vPhaseOffset.x + 0.5) + vPhaseOffset.y);
+        float twinkle = 0.65 + 0.35 * sin(uTime * 3.0 * (vPhaseOffset.x + 0.5) + vPhaseOffset.y);
 
-        // Color variation (Movie Accent / Electric Cyan / Diamond White)
+        // Color variation
         vec3 pixelColor;
         float colorType = vPhaseOffset.w;
 
         if (colorType < 0.45) {
-          pixelColor = uAccentColor * 1.5;
+          pixelColor = uAccentColor * 1.4;
         } else if (colorType < 0.75) {
           pixelColor = vec3(0.35, 0.9, 1.0);
         } else {
