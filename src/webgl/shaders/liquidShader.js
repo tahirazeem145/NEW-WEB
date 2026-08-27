@@ -1,8 +1,7 @@
 /**
- * GLSL Liquid Distortion Shader
- * Simulates fluid dynamic ripples, liquid surface tension displacement,
- * RGB chromatic dispersion, and caustic sheen ONLY when the cursor is actively moving over 3D movie cards.
- * When the cursor is stationary or placed, the poster remains crystal clear with 0 distortion.
+ * GLSL Liquid Distortion Shader with Rounded Corner Mesh Clipping
+ * Matches Jesper Landberg curved panorama panel layout with smooth rounded corners,
+ * motion-velocity-modulated liquid ripple refraction, and optical chromatic aberration.
  */
 
 export const liquidVertexShader = `
@@ -18,13 +17,13 @@ export const liquidVertexShader = `
     vPosition = position;
     vNormal = normal;
 
-    // Apply cylindrical concave curvature to vertex positions
+    // Concave cylindrical curvature along wide panorama radius
     float angle = position.x / uRadius;
     float newX = uRadius * sin(angle);
     float newZ = uRadius * (cos(angle) - 1.0);
     
-    // Subtle kinetic wave ripple along mesh when carousel spins
-    float kineticWave = sin(position.y * 1.5 + uTime * 4.0) * uVelocity * 0.08;
+    // Subtle kinetic wave along card during rapid slide scrolling
+    float kineticWave = sin(position.y * 1.2 + uTime * 3.5) * uVelocity * 0.05;
     vec3 curvedPosition = vec3(newX, position.y + kineticWave, newZ);
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(curvedPosition, 1.0);
@@ -45,7 +44,7 @@ export const liquidFragmentShader = `
   uniform vec3 uAccentColor;
   uniform float uOpacity;
 
-  // 2D Simplex / Pseudo-noise helper for liquid turbulence
+  // 2D Simplex Noise Helper
   vec2 hash2(vec2 p) {
     p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
     return -1.0 + 2.0 * fract(sin(p) * 43758.5453123);
@@ -64,35 +63,47 @@ export const liquidFragmentShader = `
     );
   }
 
+  // Rounded rectangle SDF distance function
+  float roundedBoxSDF(vec2 p, vec2 size, float radius) {
+    vec2 d = abs(p) - size + vec2(radius);
+    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - radius;
+  }
+
   void main() {
     vec2 uv = vUv;
 
-    // Vector and distance from fragment to cursor position on the card
+    // Rounded rectangle corner clipping (exact Jesper Landberg panel border-radius)
+    vec2 p = uv - vec2(0.5);
+    vec2 halfSize = vec2(0.495, 0.495);
+    float radius = 0.038;
+    float distToEdge = roundedBoxSDF(p, halfSize, radius);
+
+    // Discard fragments outside the rounded card frame
+    if (distToEdge > 0.0) {
+      discard;
+    }
+
+    // Antialiased corner border alpha
+    float cornerAlpha = 1.0 - smoothstep(-0.003, 0.001, distToEdge);
+
+    // Active motion factor: only trigger water ripples when cursor is actively moving
+    float motionFactor = smoothstep(0.005, 0.25, uMouseSpeed) * uHover;
+
     vec2 dir = uv - uMouse;
     float dist = length(dir);
 
-    // Active motion factor: only trigger water ripples when cursor is actively moving
-    // When cursor is placed still (uMouseSpeed == 0), motionFactor = 0 -> zero distortion
-    float motionFactor = smoothstep(0.005, 0.25, uMouseSpeed) * uHover;
-
-    // Dynamic multi-octave liquid ripple equations
+    // Liquid ripple equations
     float rippleFreq = 28.0;
     float rippleSpeed = 5.5;
     float ripple = sin(dist * rippleFreq - uTime * rippleSpeed);
-    
-    // Liquid noise turbulence
-    float turbulence = perlinNoise(uv * 8.0 + vec2(uTime * 0.4, uTime * 0.3)) * 0.25;
-    
-    // Gaussian spatial dropoff from cursor position
+    float turbulence = perlinNoise(uv * 8.0 + vec2(uTime * 0.4, uTime * 0.3)) * 0.22;
     float falloff = exp(-dist * 5.2);
 
-    // Total displacement vector (strictly 0 when mouse is stationary)
+    // Total displacement vector
     vec2 liquidDisplacement = normalize(dir + 0.0001) * (ripple + turbulence) * falloff * motionFactor * 0.09;
+    liquidDisplacement.x += sin(uv.y * 10.0 + uTime * 2.0) * uVelocity * 0.035;
 
-    // Kinetic carousel drag shear
-    liquidDisplacement.x += sin(uv.y * 10.0 + uTime * 2.0) * uVelocity * 0.04;
-
-    // Liquid Chromatic Aberration (R, G, B channel separation on motion)
+    // Chromatic aberration offsets
     float rOffset = 1.15;
     float gOffset = 1.00;
     float bOffset = 0.85;
@@ -101,12 +112,10 @@ export const liquidFragmentShader = `
     vec2 uvG = uv + liquidDisplacement * gOffset;
     vec2 uvB = uv + liquidDisplacement * bOffset;
 
-    // Clamp UVs to avoid texture border artifacts
     uvR = clamp(uvR, vec2(0.001), vec2(0.999));
     uvG = clamp(uvG, vec2(0.001), vec2(0.999));
     uvB = clamp(uvB, vec2(0.001), vec2(0.999));
 
-    // Sample color channels with fluid displacement
     float r = texture2D(uTexture, uvR).r;
     float g = texture2D(uTexture, uvG).g;
     float b = texture2D(uTexture, uvB).b;
@@ -114,13 +123,17 @@ export const liquidFragmentShader = `
 
     vec3 finalColor = vec3(r, g, b);
 
-    // Specular liquid caustic glint active ONLY during active cursor motion
+    // Specular liquid caustic glint active strictly on cursor motion
     if (motionFactor > 0.001) {
       float caustic = pow(max(0.0, sin(dist * 32.0 - uTime * 6.0) * falloff), 4.0) * motionFactor * 0.45;
       finalColor += uAccentColor * caustic;
       finalColor += vec3(0.15, 0.2, 0.25) * (caustic * 0.6);
     }
 
-    gl_FragColor = vec4(finalColor, a * uOpacity);
+    // Subtle edge border highlight around the curved card
+    float edgeHighlight = smoothstep(-0.008, -0.001, distToEdge) * (1.0 - smoothstep(-0.001, 0.001, distToEdge));
+    finalColor += vec3(0.35, 0.35, 0.4) * edgeHighlight * 0.5;
+
+    gl_FragColor = vec4(finalColor, a * uOpacity * cornerAlpha);
   }
 `;
