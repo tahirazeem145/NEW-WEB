@@ -81,7 +81,7 @@ export class World {
     // 5. 3D Modules
     this.darkAtmosphere = new DarkAtmosphere(this.scene);
     this.gridFloor = new GridFloor(this.scene);
-    this.asteroidLines = new AsteroidLines(this.scene, 55);
+    this.asteroidLines = new AsteroidLines(this.scene, 14);
     this.particles = new Particles(this.scene, 40);
     this.carousel = new CylinderCarousel(this.scene, this.movies, {
       radius: 19.5,
