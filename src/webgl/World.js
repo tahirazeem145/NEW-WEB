@@ -2,13 +2,14 @@ import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { CylinderCarousel } from './CylinderCarousel.js';
 import { GridFloor } from './GridFloor.js';
+import { DarkAtmosphere } from './DarkAtmosphere.js';
 import { Particles } from './Particles.js';
 import { SoundFX } from '../engine/SoundFX.js';
 
 /**
  * World
- * Coordinates the wide panorama 3D movie gallery, perspective camera,
- * and executes camera zoom-in / 3D tilt transitions on card clicks.
+ * Coordinates the wide panorama 3D cinema scene, perspective camera,
+ * dark cybernetic atmosphere, grid floor, particles, and interactive card transitions.
  */
 export class World {
   constructor(canvasElement, movies, physics, inputManager) {
@@ -24,6 +25,7 @@ export class World {
 
     this.carousel = null;
     this.gridFloor = null;
+    this.darkAtmosphere = null;
     this.particles = null;
 
     this.clock = new THREE.Clock();
@@ -44,12 +46,12 @@ export class World {
   init() {
     // 1. Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color('#050507');
-    this.scene.fog = new THREE.FogExp2('#050507', 0.026);
+    this.scene.background = new THREE.Color('#030305');
+    this.scene.fog = new THREE.FogExp2('#030305', 0.022);
 
     // 2. Camera - Eye level wide perspective
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(46, aspect, 0.1, 100);
+    this.camera = new THREE.PerspectiveCamera(46, aspect, 0.1, 120);
     this.camera.position.set(0, 0.05, 9.8);
     this.camera.lookAt(this.cameraTarget);
 
@@ -63,24 +65,30 @@ export class World {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.12;
+    this.renderer.toneMappingExposure = 1.15;
 
     // 4. Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     this.scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
     dirLight.position.set(5, 10, 8);
     this.scene.add(dirLight);
 
-    // 5. 3D Modules
+    // 5. 3D Modules: Dark Atmosphere, Cyber Grid Floor, Particles, Carousel
+    this.darkAtmosphere = new DarkAtmosphere(this.scene);
     this.gridFloor = new GridFloor(this.scene);
-    this.particles = new Particles(this.scene, 300);
+    this.particles = new Particles(this.scene, 320);
     this.carousel = new CylinderCarousel(this.scene, this.movies, {
       radius: 19.5,
       cardWidth: 10.4,
       cardHeight: 6.2
     });
+
+    // Set initial accent color
+    if (this.movies.length > 0) {
+      this.updateAtmosphereAccent(this.movies[0].accentColor);
+    }
 
     // 6. Bind Input
     this.bindInputs();
@@ -88,6 +96,11 @@ export class World {
     // 7. Render Loop
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
+  }
+
+  updateAtmosphereAccent(colorHex) {
+    if (this.gridFloor) this.gridFloor.setAccentColor(colorHex);
+    if (this.darkAtmosphere) this.darkAtmosphere.setAccentColor(colorHex);
   }
 
   bindInputs() {
@@ -197,15 +210,24 @@ export class World {
       document.body.classList.remove('cursor-drag', 'cursor-view');
     }
 
+    // Update 3D Modules
     this.carousel.update(current, velocity, elapsedTime);
     this.gridFloor.update(elapsedTime, velocity);
+    this.darkAtmosphere.update(elapsedTime, velocity);
     this.particles.update(elapsedTime, velocity);
 
+    // Track active movie index
     if (this.carousel.selectedIndex !== this.lastActiveIndex) {
       this.lastActiveIndex = this.carousel.selectedIndex;
+      const activeMovie = this.carousel.getActiveMovie();
+      
       SoundFX.playSlideTick();
+      if (activeMovie) {
+        this.updateAtmosphereAccent(activeMovie.accentColor);
+      }
+
       if (this.onActiveChangeCallback) {
-        this.onActiveChangeCallback(this.carousel.selectedIndex, this.carousel.getActiveMovie());
+        this.onActiveChangeCallback(this.carousel.selectedIndex, activeMovie);
       }
     }
 
@@ -259,6 +281,7 @@ export class World {
     window.removeEventListener('resize', this.onResize);
     this.carousel.destroy();
     this.gridFloor.destroy();
+    this.darkAtmosphere.destroy();
     this.particles.destroy();
     this.renderer.dispose();
   }
