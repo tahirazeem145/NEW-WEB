@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 
 /**
- * Particles — Micro-Pixel Particle Swarm
- * 1,600 sharp, tiny square micro-pixels flying and swirling continuously
- * in 3D perspective space with vortex flight physics and movie-reactive neon luminescence.
+ * Particles — Low-Quantity Random Micro-Pixel Swarm
+ * 140 subtle, tiny square micro-pixels wandering and floating freely
+ * in true random 3D directions (independent 3-axis Brownian flight, no left-to-right drift).
  */
 export class Particles {
-  constructor(scene, count = 1600) {
+  constructor(scene, count = 140) {
     this.scene = scene;
     this.count = count;
     this.mesh = null;
@@ -17,16 +17,14 @@ export class Particles {
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(this.count * 3);
     const initialPositions = new Float32Array(this.count * 3);
-    const randoms = new Float32Array(this.count * 4); // [speed, baseSize, phase, colorType]
+    const flightVectors = new Float32Array(this.count * 4); // [freqX, freqY, freqZ, baseSize]
+    const phaseOffsets = new Float32Array(this.count * 4);  // [phaseX, phaseY, phaseZ, colorType]
 
     for (let i = 0; i < this.count; i++) {
-      // Wide 3D volume surrounding camera and curved panorama cards
-      const radius = 3.5 + Math.random() * 24.0;
-      const theta = Math.random() * Math.PI * 2;
-      const y = (Math.random() - 0.5) * 20.0;
-
-      const x = Math.sin(theta) * radius;
-      const z = Math.cos(theta) * radius - 2.0;
+      // Distributed widely in 3D volume around the camera and cards
+      const x = (Math.random() - 0.5) * 26.0;
+      const y = (Math.random() - 0.5) * 16.0;
+      const z = -2.0 + (Math.random() - 0.5) * 20.0;
 
       positions[i * 3] = x;
       positions[i * 3 + 1] = y;
@@ -36,23 +34,31 @@ export class Particles {
       initialPositions[i * 3 + 1] = y;
       initialPositions[i * 3 + 2] = z;
 
-      // Small micro-pixel sizing (2px to 7px) with lively flight velocities
-      randoms[i * 4] = 0.5 + Math.random() * 1.8;      // flight speed multiplier
-      randoms[i * 4 + 1] = 2.5 + Math.random() * 5.5;  // small micro-pixel size
-      randoms[i * 4 + 2] = Math.random() * Math.PI * 2;// 3D flight phase
-      randoms[i * 4 + 3] = Math.random();              // color palette selector
+      // Independent random 3D flight frequencies & amplitudes
+      flightVectors[i * 4] = 0.25 + Math.random() * 0.55;     // X wander frequency
+      flightVectors[i * 4 + 1] = 0.30 + Math.random() * 0.60; // Y wander frequency
+      flightVectors[i * 4 + 2] = 0.20 + Math.random() * 0.50; // Z wander frequency
+      flightVectors[i * 4 + 3] = 2.0 + Math.random() * 3.5;   // tiny micro-pixel size (2px - 5.5px)
+
+      // Random phase offsets
+      phaseOffsets[i * 4] = Math.random() * Math.PI * 2;
+      phaseOffsets[i * 4 + 1] = Math.random() * Math.PI * 2;
+      phaseOffsets[i * 4 + 2] = Math.random() * Math.PI * 2;
+      phaseOffsets[i * 4 + 3] = Math.random(); // color variation
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('aInitialPos', new THREE.BufferAttribute(initialPositions, 3));
-    geometry.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 4));
+    geometry.setAttribute('aFlightVec', new THREE.BufferAttribute(flightVectors, 4));
+    geometry.setAttribute('aPhaseOffset', new THREE.BufferAttribute(phaseOffsets, 4));
 
-    // Custom GLSL Shader Material for crisp square micro-pixels
+    // Custom GLSL Shader Material for random 3D micro-pixel wander
     const vertexShader = `
       attribute vec3 aInitialPos;
-      attribute vec4 aRandom; // speed, baseSize, phase, colorType
+      attribute vec4 aFlightVec;   // freqX, freqY, freqZ, baseSize
+      attribute vec4 aPhaseOffset; // phaseX, phaseY, phaseZ, colorType
 
-      varying vec4 vRandom;
+      varying vec4 vPhaseOffset;
       varying float vDistanceAlpha;
 
       uniform float uTime;
@@ -60,84 +66,75 @@ export class Particles {
       uniform vec2 uResolution;
 
       void main() {
-        vRandom = aRandom;
+        vPhaseOffset = aPhaseOffset;
 
-        float speed = aRandom.x;
-        float baseSize = aRandom.y;
-        float phase = aRandom.z;
+        float fx = aFlightVec.x;
+        float fy = aFlightVec.y;
+        float fz = aFlightVec.z;
+        float baseSize = aFlightVec.w;
 
-        // Dynamic 3D continuous flight vortex
+        float px = aPhaseOffset.x;
+        float py = aPhaseOffset.y;
+        float pz = aPhaseOffset.z;
+
+        // True random 3D Brownian wandering flight (no directional left-to-right drift)
         vec3 pos = aInitialPos;
-
-        // Continuous vertical & horizontal flying turbulence
-        float flightTime = uTime * 0.9 * speed + phase;
-        pos.y += sin(flightTime * 1.2) * 1.8 + cos(flightTime * 0.7) * 0.8;
         
-        // Swirling 3D orbital flight around the cinema viewport
-        float orbitAngle = uTime * 0.18 * speed + uVelocity * 2.5;
-        float cosA = cos(orbitAngle);
-        float sinA = sin(orbitAngle);
-        float rotX = pos.x * cosA - pos.z * sinA;
-        float rotZ = pos.x * sinA + pos.z * cosA;
-        pos.x = rotX;
-        pos.z = rotZ;
+        pos.x += sin(uTime * fx + px) * 1.8 + cos(uTime * (fy * 0.6) + pz) * 0.9;
+        pos.y += cos(uTime * fy + py) * 1.6 + sin(uTime * (fz * 0.7) + px) * 0.8;
+        pos.z += sin(uTime * fz + pz) * 1.5 + cos(uTime * (fx * 0.5) + py) * 0.7;
 
-        // Kinetic flight burst when scrolling
-        pos.x += sin(pos.y * 1.5 + uTime * 4.0) * uVelocity * 0.8;
-        pos.z += cos(pos.x * 1.5 + uTime * 3.0) * uVelocity * 0.5;
+        // Subtle displacement when dragging
+        pos.x += sin(pos.y * 1.5 + uTime * 2.0) * uVelocity * 0.4;
 
         vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
         gl_Position = projectionMatrix * mvPosition;
 
         // Perspective depth size attenuation for small micro-pixels
-        float kineticStretch = 1.0 + abs(uVelocity) * 1.4;
-        gl_PointSize = (baseSize * kineticStretch) * (180.0 / -mvPosition.z);
-        gl_PointSize = clamp(gl_PointSize, 1.5, 12.0);
+        gl_PointSize = baseSize * (160.0 / -mvPosition.z);
+        gl_PointSize = clamp(gl_PointSize, 1.5, 8.0);
 
         // Distance fog fade
         float dist = -mvPosition.z;
-        vDistanceAlpha = smoothstep(1.0, 4.0, dist) * (1.0 - smoothstep(20.0, 45.0, dist));
+        vDistanceAlpha = smoothstep(1.0, 3.5, dist) * (1.0 - smoothstep(18.0, 38.0, dist));
       }
     `;
 
     const fragmentShader = `
-      varying vec4 vRandom;
+      varying vec4 vPhaseOffset;
       varying float vDistanceAlpha;
 
       uniform vec3 uAccentColor;
       uniform float uTime;
 
       void main() {
-        // Sharp Square Pixel Shape (100% sharp micro-pixel geometry)
+        // Sharp Square Micro-Pixel Shape
         vec2 p = gl_PointCoord - vec2(0.5);
 
         // Discard fragments outside the square pixel box
-        if (abs(p.x) > 0.46 || abs(p.y) > 0.46) {
+        if (abs(p.x) > 0.44 || abs(p.y) > 0.44) {
           discard;
         }
 
-        // Sharp micro-pixel glow
-        float pixelGlow = 1.0 - max(abs(p.x), abs(p.y)) * 0.6;
+        // Soft micro-pixel glow
+        float pixelGlow = 1.0 - max(abs(p.x), abs(p.y)) * 0.5;
 
-        // Rapid glittering twinkle
-        float twinkle = 0.65 + 0.35 * sin(uTime * 6.0 * vRandom.x + vRandom.z * 3.0);
+        // Gentle random twinkle
+        float twinkle = 0.6 + 0.4 * sin(uTime * 3.5 * (vPhaseOffset.x + 0.5) + vPhaseOffset.y);
 
-        // Color variation (Movie Accent / Cyber Cyan / Pure White Spark)
+        // Color variation (Movie Accent / Electric Cyan / Diamond White)
         vec3 pixelColor;
-        float colorType = vRandom.w;
+        float colorType = vPhaseOffset.w;
 
-        if (colorType < 0.40) {
-          // Movie Theme Neon Pixel
-          pixelColor = uAccentColor * 1.6;
-        } else if (colorType < 0.70) {
-          // Electric Cyan Pixel Spark
-          pixelColor = vec3(0.3, 0.9, 1.0);
+        if (colorType < 0.45) {
+          pixelColor = uAccentColor * 1.5;
+        } else if (colorType < 0.75) {
+          pixelColor = vec3(0.35, 0.9, 1.0);
         } else {
-          // Crisp Pure Diamond White Pixel
           pixelColor = vec3(1.0, 1.0, 1.0);
         }
 
-        float alpha = vDistanceAlpha * twinkle * pixelGlow * 0.9;
+        float alpha = vDistanceAlpha * twinkle * pixelGlow * 0.85;
 
         gl_FragColor = vec4(pixelColor, alpha);
       }
