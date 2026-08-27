@@ -5,8 +5,8 @@ import { liquidVertexShader, liquidFragmentShader } from './shaders/liquidShader
 
 /**
  * CylinderCarousel
- * 3D Curved Cylindrical Movie Showcase with GLSL Liquid Distortion Shader
- * that activates ripples strictly during cursor motion and stays crystal clear when stationary.
+ * Wide concave curved panorama movie showcase matching Jesper Landberg layout
+ * with SDF rounded-corner panels and motion-velocity-modulated GLSL liquid shaders.
  */
 export class CylinderCarousel {
   constructor(scene, movies, options = {}) {
@@ -16,9 +16,9 @@ export class CylinderCarousel {
 
     this.group = new THREE.Group();
     this.cards = [];
-    this.radius = options.radius || 13.5;
-    this.cardWidth = options.cardWidth || 9.4;
-    this.cardHeight = options.cardHeight || 5.6;
+    this.radius = options.radius || 19.5;
+    this.cardWidth = options.cardWidth || 10.4;
+    this.cardHeight = options.cardHeight || 6.2;
 
     this.itemCount = this.movies.length;
     this.angleStep = (Math.PI * 2) / this.itemCount;
@@ -46,6 +46,7 @@ export class CylinderCarousel {
     const segmentsY = 16;
     const baseGeo = new THREE.PlaneGeometry(this.cardWidth, this.cardHeight, segmentsX, segmentsY);
 
+    // Concave cylindrical curvature along wide panorama arc
     const pos = baseGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
@@ -116,20 +117,20 @@ export class CylinderCarousel {
       const x = Math.sin(normalizedAngle) * this.radius;
       const z = Math.cos(normalizedAngle) * this.radius - this.radius + card.userData.offsetZ;
 
-      card.position.set(x, Math.cos(normalizedAngle * 2.0) * 0.12, z);
+      card.position.set(x, 0, z);
       
       // Base orientation + dynamic 3D tilt
       card.rotation.y = normalizedAngle + card.userData.tiltY;
       card.rotation.x = card.userData.tiltX;
 
-      // Depth fading
+      // Depth fading towards edges
       const depthDist = Math.abs(normalizedAngle);
-      const fade = 1.0 - Math.min(Math.max((depthDist - 1.2) / 1.6, 0.0), 0.88);
+      const fade = 1.0 - Math.min(Math.max((depthDist - 1.3) / 1.5, 0.0), 0.88);
       card.material.uniforms.uOpacity.value = fade;
 
       // Hover scale interpolation
       const isHovered = card === this.hoveredCard && !this.isZooming;
-      const targetScale = isHovered ? 1.035 : 1.0;
+      const targetScale = isHovered ? 1.03 : 1.0;
       card.userData.currentScale += (targetScale - card.userData.currentScale) * 0.15;
       card.scale.setScalar(card.userData.currentScale);
     }
@@ -142,14 +143,14 @@ export class CylinderCarousel {
   update(progress, velocity = 0, time = 0) {
     this.updateCardPositions(progress);
 
-    // Calculate mouse movement speed on the card
+    // Track mouse speed on the card
     const deltaMove = this.hoveredUv.distanceTo(this.prevUv);
     this.prevUv.copy(this.hoveredUv);
-    this.targetMouseSpeed = deltaMove * 18.0; // amplify UV displacement delta
+    this.targetMouseSpeed = deltaMove * 18.0;
 
-    // Smoothly decay mouse speed to 0 when placed/stationary
+    // Smoothly decay mouse speed to 0 when stationary
     this.mouseSpeed += (this.targetMouseSpeed - this.mouseSpeed) * 0.22;
-    this.targetMouseSpeed *= 0.75; // rapid decay
+    this.targetMouseSpeed *= 0.75;
 
     for (let i = 0; i < this.cards.length; i++) {
       const card = this.cards[i];
@@ -163,9 +164,8 @@ export class CylinderCarousel {
         card.userData.targetMouse.copy(this.hoveredUv);
         card.userData.mouseSpeed = this.mouseSpeed;
 
-        // Subtle 3D tilt tracking cursor on card
-        const targetTiltX = -(this.hoveredUv.y - 0.5) * 0.18;
-        const targetTiltY = (this.hoveredUv.x - 0.5) * 0.22;
+        const targetTiltX = -(this.hoveredUv.y - 0.5) * 0.15;
+        const targetTiltY = (this.hoveredUv.x - 0.5) * 0.18;
         card.userData.tiltX += (targetTiltX - card.userData.tiltX) * 0.1;
         card.userData.tiltY += (targetTiltY - card.userData.tiltY) * 0.1;
       } else if (!this.isZooming) {
@@ -184,9 +184,9 @@ export class CylinderCarousel {
     }
 
     if (!this.isZooming) {
-      const lean = Math.min(Math.max(velocity * 4.0, -0.15), 0.15);
+      const lean = Math.min(Math.max(velocity * 3.5, -0.12), 0.12);
       this.group.rotation.z = THREE.MathUtils.lerp(this.group.rotation.z, -lean, 0.1);
-      this.group.rotation.x = Math.sin(time * 0.5) * 0.015;
+      this.group.rotation.x = Math.sin(time * 0.4) * 0.01;
     }
   }
 
@@ -197,8 +197,8 @@ export class CylinderCarousel {
     this.isZooming = true;
     this.zoomedCard = hitCard;
 
-    const tiltX = -(uv.y - 0.5) * 0.35;
-    const tiltY = (uv.x - 0.5) * 0.45;
+    const tiltX = -(uv.y - 0.5) * 0.3;
+    const tiltY = (uv.x - 0.5) * 0.38;
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -209,20 +209,19 @@ export class CylinderCarousel {
     tl.to(hitCard.userData, {
       tiltX: tiltX,
       tiltY: tiltY,
-      offsetZ: 2.2,
+      offsetZ: 2.4,
       duration: 0.65,
       ease: 'power3.out'
     }, 0);
 
     tl.to(hitCard.scale, {
-      x: 1.25,
-      y: 1.25,
-      z: 1.25,
+      x: 1.22,
+      y: 1.22,
+      z: 1.22,
       duration: 0.65,
       ease: 'power3.out'
     }, 0);
 
-    // Dynamic ripple burst strictly during the click transition
     tl.to(hitCard.material.uniforms.uMouseSpeed, {
       value: 0.6,
       duration: 0.25,
