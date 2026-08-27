@@ -65,14 +65,27 @@ class MovieGalleryApp {
 
     // 4. Header & Footer
     this.header = new Header(this.appContainer, () => {
+      SoundFX.playButtonClick(740);
       this.aboutDrawer.open();
     });
 
     this.footer = new Footer(this.appContainer, MOVIES.length, {
-      onViewModeChange: (mode) => this.handleViewModeChange(mode),
-      onNewsletterClick: () => this.newsletterModal.open(),
-      onPrevClick: () => this.world.prevSlide(),
-      onNextClick: () => this.world.nextSlide()
+      onViewModeChange: (mode) => {
+        SoundFX.playButtonClick(820);
+        this.handleViewModeChange(mode);
+      },
+      onNewsletterClick: () => {
+        SoundFX.playButtonClick(900);
+        this.newsletterModal.open();
+      },
+      onPrevClick: () => {
+        SoundFX.playButtonClick(680);
+        this.world.prevSlide();
+      },
+      onNextClick: () => {
+        SoundFX.playButtonClick(760);
+        this.world.nextSlide();
+      }
     });
 
     // 5. Connect 3D Callbacks
@@ -99,7 +112,12 @@ class MovieGalleryApp {
   }
 
   bindGlobalEvents() {
-    const hideGuide = () => {
+    const handleFirstInteraction = () => {
+      SoundFX.ensureContext();
+      if (!SoundFX.isMuted && !SoundFX.isMelodyPlaying) {
+        SoundFX.startMelody();
+      }
+
       if (!this.hasInteracted) {
         this.hasInteracted = true;
         if (this.dragGuide) {
@@ -111,14 +129,25 @@ class MovieGalleryApp {
       }
     };
 
-    this.input.on('dragStart', hideGuide);
-    this.input.on('wheel', hideGuide);
+    // User gesture audio unlock
+    window.addEventListener('pointerdown', handleFirstInteraction, { once: false });
+    window.addEventListener('keydown', handleFirstInteraction, { once: false });
+    this.input.on('dragStart', handleFirstInteraction);
+    this.input.on('wheel', handleFirstInteraction);
+
+    // Global tactile SFX on any button click
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button, .nav-arrow-btn, .view-mode-btn, .card-tag, .genre-chip');
+      if (btn) {
+        SoundFX.playButtonClick(880);
+      }
+    });
 
     // Brand logo click to reset view
     const brandLogo = document.getElementById('brand-logo');
     if (brandLogo) {
       brandLogo.addEventListener('click', () => {
-        SoundFX.playTick(600, 0.04);
+        SoundFX.playButtonClick(1020);
         this.world.goToMovieIndex(0);
         this.footer.setMode('featured');
         this.handleViewModeChange('featured');
@@ -132,18 +161,21 @@ class MovieGalleryApp {
       }
 
       if (key === 'ArrowRight' || key === 'd' || key === 'D') {
+        SoundFX.playButtonClick(760);
         this.world.nextSlide();
-        hideGuide();
       } else if (key === 'ArrowLeft' || key === 'a' || key === 'A') {
+        SoundFX.playButtonClick(680);
         this.world.prevSlide();
-        hideGuide();
       } else if (key === 'f' || key === 'F') {
+        SoundFX.playButtonClick(840);
         const nextMode = this.footer.currentMode === 'featured' ? 'full' : 'featured';
         this.footer.setMode(nextMode);
         this.handleViewModeChange(nextMode);
       } else if (key === 'p' || key === 'P' || key === 'i' || key === 'I') {
+        SoundFX.playButtonClick(740);
         this.aboutDrawer.open();
       } else if (key === 'u' || key === 'U' || key === 'n' || key === 'N') {
+        SoundFX.playButtonClick(900);
         this.newsletterModal.open();
       } else if (key === 'm' || key === 'M') {
         SoundFX.toggleMute();
