@@ -3,8 +3,9 @@ import { SoundFX } from '../engine/SoundFX.js';
 
 /**
  * MovieModal Component
- * Immersive cinema lightbox with ultra-smooth GSAP FLIP zoom transitions,
- * staggered content revelation, official 16:9 poster hero, and dialogue quotes.
+ * Jesper Landberg Signature Case Study Experience.
+ * Seamlessly morphs from the 3D flattened card into a full-page editorial showcase
+ * with smooth momentum easing, dialogue typography, and staggered content revelation.
  */
 export class MovieModal {
   constructor(container, options = {}) {
@@ -76,7 +77,7 @@ export class MovieModal {
     `).join('');
 
     this.modal.innerHTML = `
-      <div class="modal-anim-item case-study-media-banner" style="position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 480px; overflow: hidden; border-radius: var(--radius-lg); margin-bottom: 36px; border: 1px solid ${movie.accentColor}44; box-shadow: 0 24px 60px rgba(0,0,0,0.9);">
+      <div class="modal-anim-item case-study-media-banner" style="position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 520px; overflow: hidden; border-radius: var(--radius-lg); margin-bottom: 40px; border: 1px solid ${movie.accentColor}44; box-shadow: 0 30px 80px rgba(0,0,0,0.95);">
         <img src="${movie.posterUrl}" alt="${movie.title} Poster Banner" style="width: 100%; height: 100%; object-fit: cover;" />
         <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 65%; background: linear-gradient(to top, rgba(14,14,16,0.98), transparent);"></div>
       </div>
@@ -101,23 +102,23 @@ export class MovieModal {
           ${movie.tagline}
         </p>
 
-        <div style="background: rgba(255,255,255,0.03); border-left: 3px solid ${movie.accentColor}; padding: 18px 24px; border-radius: 0 var(--radius-md) var(--radius-md) 0; margin-bottom: 28px;">
+        <div style="background: rgba(255,255,255,0.03); border-left: 3px solid ${movie.accentColor}; padding: 20px 26px; border-radius: 0 var(--radius-md) var(--radius-md) 0; margin-bottom: 32px;">
           <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: ${movie.accentColor}; margin-bottom: 6px;">
             ICONIC DIALOGUE & CULT MOMENT
           </div>
-          <div style="font-family: var(--font-serif); font-size: 18px; font-style: italic; color: #ffffff; line-height: 1.5;">
+          <div style="font-family: var(--font-serif); font-size: 19px; font-style: italic; color: #ffffff; line-height: 1.55;">
             “ ${movie.iconicDialogue} ”
           </div>
         </div>
       </div>
 
-      <div class="modal-anim-item case-study-meta-grid" style="margin-bottom: 32px;">
+      <div class="modal-anim-item case-study-meta-grid" style="margin-bottom: 36px;">
         ${statsHtml}
       </div>
 
       <div class="modal-anim-item case-study-section">
         <h2 class="section-title" style="color: ${movie.accentColor};">SYNOPSIS</h2>
-        <p class="section-text" style="font-size: 15px; line-height: 1.7; color: var(--text-secondary);">
+        <p class="section-text" style="font-size: 15px; line-height: 1.75; color: var(--text-secondary);">
           ${movie.synopsis}
         </p>
       </div>
@@ -139,18 +140,18 @@ export class MovieModal {
       <div class="modal-anim-item case-study-section">
         <h2 class="section-title" style="color: ${movie.accentColor};">CREATIVE DIRECTORS & COMPOSERS</h2>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
-          <div style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.06);">
+          <div style="padding: 18px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.06);">
             <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Director</div>
             <div style="font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: #fff; margin-top: 4px;">${movie.director}</div>
           </div>
-          <div style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.06);">
+          <div style="padding: 18px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.06);">
             <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Music Director / Score</div>
             <div style="font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: #fff; margin-top: 4px;">${movie.musicDirector}</div>
           </div>
         </div>
       </div>
 
-      <div class="modal-anim-item case-study-cta-row" style="margin-top: 40px;">
+      <div class="modal-anim-item case-study-cta-row" style="margin-top: 44px;">
         <button class="primary-btn" id="movie-trailer-btn" style="background: ${movie.accentColor}; border-color: ${movie.accentColor}; color: #000; font-weight: 700;">
           <span>WATCH TRAILER & HIGHLIGHTS</span>
           <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M8 5v14l11-7z"/></svg>
@@ -161,7 +162,6 @@ export class MovieModal {
       </div>
     `;
 
-    // Bind inner buttons
     const bottomCloseBtn = this.modal.querySelector('#movie-close-bottom-btn');
     if (bottomCloseBtn) {
       bottomCloseBtn.addEventListener('click', () => this.close());
@@ -175,7 +175,7 @@ export class MovieModal {
       });
     }
 
-    // Ultra-Smooth Continuous Zoom Inset Transition
+    // Jesper Landberg Signature Seamless Morphing Timeline
     this.backdrop.classList.add('active');
     this.backdrop.scrollTop = 0;
 
@@ -183,21 +183,21 @@ export class MovieModal {
 
     this.currentTimeline = gsap.timeline();
 
-    // 1. Backdrop smoothly fades in with deep blur
+    // 1. Deep Obsidian glass backdrop fades in seamlessly with the 3D unbending plane
     this.currentTimeline.fromTo(this.backdrop, {
       opacity: 0,
       backdropFilter: 'blur(0px)'
     }, {
       opacity: 1,
-      backdropFilter: 'blur(24px)',
-      duration: 0.75,
-      ease: 'power2.out'
+      backdropFilter: 'blur(28px)',
+      duration: 1.15,
+      ease: 'power4.inOut'
     }, 0);
 
-    // 2. Modal card zooms smoothly from card scale (0.75 -> 1.0) into view
+    // 2. Modal content scales smoothly from flattened 3D card footprint
     this.currentTimeline.fromTo(this.modal, {
-      scale: 0.78,
-      y: 60,
+      scale: 0.84,
+      y: 70,
       opacity: 0,
       filter: 'blur(16px)'
     }, {
@@ -205,22 +205,22 @@ export class MovieModal {
       y: 0,
       opacity: 1,
       filter: 'blur(0px)',
-      duration: 0.85,
-      ease: 'power3.out'
-    }, 0.05);
+      duration: 1.15,
+      ease: 'power4.inOut'
+    }, 0.08);
 
-    // 3. Stagger inner content upward with silky flow
+    // 3. Stagger inner case study blocks with silky glide
     const animItems = this.modal.querySelectorAll('.modal-anim-item');
     this.currentTimeline.fromTo(animItems, {
-      y: 35,
+      y: 40,
       opacity: 0
     }, {
       y: 0,
       opacity: 1,
-      duration: 0.7,
-      stagger: 0.05,
-      ease: 'power2.out'
-    }, 0.2);
+      duration: 0.85,
+      stagger: 0.06,
+      ease: 'power3.out'
+    }, 0.35);
   }
 
   close() {
@@ -239,21 +239,21 @@ export class MovieModal {
       }
     });
 
-    // Silky smooth zoom-out contraction
+    // Seamless un-zoom contraction back into 3D cylinder
     this.currentTimeline.to(this.modal, {
-      scale: 0.82,
-      y: 40,
+      scale: 0.84,
+      y: 50,
       opacity: 0,
       filter: 'blur(12px)',
-      duration: 0.55,
-      ease: 'power3.in'
+      duration: 0.95,
+      ease: 'power4.inOut'
     }, 0);
 
     this.currentTimeline.to(this.backdrop, {
       opacity: 0,
       backdropFilter: 'blur(0px)',
-      duration: 0.55,
-      ease: 'power2.in'
+      duration: 0.95,
+      ease: 'power4.inOut'
     }, 0.05);
   }
 }
