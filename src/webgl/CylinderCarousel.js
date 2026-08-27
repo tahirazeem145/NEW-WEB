@@ -6,7 +6,7 @@ import { liquidVertexShader, liquidFragmentShader } from './shaders/liquidShader
 /**
  * CylinderCarousel
  * Wide concave curved panorama movie showcase matching Jesper Landberg layout
- * with SDF rounded-corner panels and motion-velocity-modulated GLSL liquid shaders.
+ * with 3D-to-2D morphing unbending plane transition and motion-velocity-modulated GLSL liquid shaders.
  */
 export class CylinderCarousel {
   constructor(scene, movies, options = {}) {
@@ -32,6 +32,7 @@ export class CylinderCarousel {
     this.selectedIndex = 0;
     this.zoomedCard = null;
     this.isZooming = false;
+    this.zoomTimeline = null;
 
     this.init();
   }
@@ -42,19 +43,9 @@ export class CylinderCarousel {
   }
 
   createCards() {
-    const segmentsX = 48;
-    const segmentsY = 16;
+    const segmentsX = 64;
+    const segmentsY = 24;
     const baseGeo = new THREE.PlaneGeometry(this.cardWidth, this.cardHeight, segmentsX, segmentsY);
-
-    const pos = baseGeo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const angle = x / this.radius;
-      const newX = this.radius * Math.sin(angle);
-      const newZ = this.radius * (Math.cos(angle) - 1.0);
-      pos.setXYZ(i, newX, pos.getY(i), newZ);
-    }
-    baseGeo.computeVertexNormals();
 
     for (let i = 0; i < this.itemCount; i++) {
       const movie = this.movies[i];
@@ -73,6 +64,7 @@ export class CylinderCarousel {
           uMouseSpeed: { value: 0.0 },
           uVelocity: { value: 0.0 },
           uRadius: { value: this.radius },
+          uFlatten: { value: 0.0 },
           uAccentColor: { value: new THREE.Color(movie.accentColor) },
           uOpacity: { value: 1.0 }
         }
@@ -92,6 +84,7 @@ export class CylinderCarousel {
         tiltX: 0,
         tiltY: 0,
         offsetZ: 0,
+        offsetX: 0,
         customOpacity: 1.0
       };
 
@@ -114,7 +107,7 @@ export class CylinderCarousel {
       let normalizedAngle = ((angle % totalAngle) + totalAngle) % totalAngle;
       if (normalizedAngle > Math.PI) normalizedAngle -= totalAngle;
 
-      const x = Math.sin(normalizedAngle) * this.radius;
+      const x = Math.sin(normalizedAngle) * this.radius + card.userData.offsetX;
       const z = Math.cos(normalizedAngle) * this.radius - this.radius + card.userData.offsetZ;
 
       card.position.set(x, 0, z);
@@ -190,63 +183,73 @@ export class CylinderCarousel {
   }
 
   /**
-   * Smooth 3D Tilt and Continuous Zoom-in Animation on Card Click
+   * Jesper Landberg Signature 3D-to-2D Morphing Plane Zoom Transition
    */
   zoomInCard(hitCard, uv, onComplete) {
     this.isZooming = true;
     this.zoomedCard = hitCard;
 
-    const tiltX = -(uv.y - 0.5) * 0.28;
-    const tiltY = (uv.x - 0.5) * 0.35;
+    if (this.zoomTimeline) this.zoomTimeline.kill();
 
-    const tl = gsap.timeline({
+    this.zoomTimeline = gsap.timeline({
       onComplete: () => {
         if (onComplete) onComplete(hitCard.userData.movie);
       }
     });
 
-    // 1. Zoom and elevate clicked card forward into full view
-    tl.to(hitCard.userData, {
-      tiltX: tiltX,
-      tiltY: tiltY,
-      offsetZ: 3.2,
-      duration: 0.8,
-      ease: 'power3.out'
+    // 1. Unbend the curved 3D mesh into a flat 2D full-bleed plane (uFlatten: 0.0 -> 1.0)
+    this.zoomTimeline.to(hitCard.material.uniforms.uFlatten, {
+      value: 1.0,
+      duration: 1.15,
+      ease: 'power4.inOut'
     }, 0);
 
-    tl.to(hitCard.scale, {
-      x: 1.28,
-      y: 1.28,
-      z: 1.28,
-      duration: 0.8,
-      ease: 'power3.out'
+    // 2. Position card directly in center front of camera
+    this.zoomTimeline.to(hitCard.position, {
+      x: 0,
+      y: 0,
+      z: 3.8,
+      duration: 1.15,
+      ease: 'power4.inOut'
     }, 0);
 
-    // 2. Softly fade neighbor cards
+    // 3. Align card rotation perfectly flat
+    this.zoomTimeline.to(hitCard.rotation, {
+      x: 0,
+      y: 0,
+      z: 0,
+      duration: 1.15,
+      ease: 'power4.inOut'
+    }, 0);
+
+    // 4. Scale up smoothly
+    this.zoomTimeline.to(hitCard.scale, {
+      x: 1.34,
+      y: 1.34,
+      z: 1.34,
+      duration: 1.15,
+      ease: 'power4.inOut'
+    }, 0);
+
+    // 5. Neighbor cards slide outward and fade away
     this.cards.forEach(card => {
       if (card !== hitCard) {
-        tl.to(card.userData, {
-          customOpacity: 0.08,
-          duration: 0.5,
-          ease: 'power2.out'
+        const diff = card.userData.index - hitCard.userData.index;
+        const dir = diff > 0 ? 1 : -1;
+        this.zoomTimeline.to(card.userData, {
+          offsetX: dir * 14.0,
+          customOpacity: 0.0,
+          duration: 0.9,
+          ease: 'power3.inOut'
         }, 0);
       }
     });
 
-    // 3. Gentle liquid ripple transition
-    tl.to(hitCard.material.uniforms.uMouseSpeed, {
-      value: 0.5,
-      duration: 0.3,
-      yoyo: true,
-      repeat: 1,
-      ease: 'power2.out'
-    }, 0);
-
-    return tl;
+    return this.zoomTimeline;
   }
 
   /**
-   * Reset Zoom and Un-tilt smoothly when modal closes
+   * Reset Zoom and Morph Back into 3D Curved Cylinder Ribbon
    */
   resetZoom(onComplete) {
     if (!this.zoomedCard) {
@@ -256,7 +259,9 @@ export class CylinderCarousel {
     }
 
     const card = this.zoomedCard;
-    const tl = gsap.timeline({
+    if (this.zoomTimeline) this.zoomTimeline.kill();
+
+    this.zoomTimeline = gsap.timeline({
       onComplete: () => {
         this.isZooming = false;
         this.zoomedCard = null;
@@ -264,32 +269,33 @@ export class CylinderCarousel {
       }
     });
 
-    tl.to(card.userData, {
-      tiltX: 0,
-      tiltY: 0,
-      offsetZ: 0,
-      duration: 0.7,
-      ease: 'power3.inOut'
+    // 1. Morph back from flat 2D plane to curved 3D cylinder (uFlatten: 1.0 -> 0.0)
+    this.zoomTimeline.to(card.material.uniforms.uFlatten, {
+      value: 0.0,
+      duration: 1.15,
+      ease: 'power4.inOut'
     }, 0);
 
-    tl.to(card.scale, {
+    // 2. Scale back to standard scale
+    this.zoomTimeline.to(card.scale, {
       x: 1.0,
       y: 1.0,
       z: 1.0,
-      duration: 0.7,
-      ease: 'power3.inOut'
+      duration: 1.15,
+      ease: 'power4.inOut'
     }, 0);
 
-    // Restore neighbor cards opacity
+    // 3. Restore neighbor cards positions and opacities
     this.cards.forEach(c => {
-      tl.to(c.userData, {
+      this.zoomTimeline.to(c.userData, {
+        offsetX: 0,
         customOpacity: 1.0,
-        duration: 0.6,
-        ease: 'power2.out'
-      }, 0);
+        duration: 1.1,
+        ease: 'power3.inOut'
+      }, 0.05);
     });
 
-    return tl;
+    return this.zoomTimeline;
   }
 
   checkIntersection(raycaster) {

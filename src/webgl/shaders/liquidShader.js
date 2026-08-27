@@ -1,7 +1,7 @@
 /**
- * GLSL Liquid Distortion Shader with Rounded Corner Mesh Clipping
- * Matches Jesper Landberg curved panorama panel layout with smooth rounded corners,
- * motion-velocity-modulated liquid ripple refraction, and optical chromatic aberration.
+ * GLSL Liquid Distortion Shader with Jesper Landberg Curvature Flattening Morph
+ * When uFlatten transitions 0.0 -> 1.0, the curved 3D mesh unbends into a flat 2D plane
+ * while liquid ripples, chromatic aberration, and SDF rounded corners remain perfectly fluid.
  */
 
 export const liquidVertexShader = `
@@ -10,6 +10,7 @@ export const liquidVertexShader = `
   varying vec3 vNormal;
   uniform float uTime;
   uniform float uRadius;
+  uniform float uFlatten;
   uniform float uVelocity;
 
   void main() {
@@ -17,16 +18,22 @@ export const liquidVertexShader = `
     vPosition = position;
     vNormal = normal;
 
-    // Concave cylindrical curvature along wide panorama radius
-    float angle = position.x / uRadius;
-    float newX = uRadius * sin(angle);
-    float newZ = uRadius * (cos(angle) - 1.0);
+    // Morphing between curved cylinder (uFlatten = 0.0) and flat plane (uFlatten = 1.0)
+    float curAngle = position.x / uRadius;
+    float curvedX = uRadius * sin(curAngle);
+    float curvedZ = uRadius * (cos(curAngle) - 1.0);
+
+    float flatX = position.x;
+    float flatZ = 0.0;
+
+    float finalX = mix(curvedX, flatX, uFlatten);
+    float finalZ = mix(curvedZ, flatZ, uFlatten);
     
     // Subtle kinetic wave along card during rapid slide scrolling
-    float kineticWave = sin(position.y * 1.2 + uTime * 3.5) * uVelocity * 0.05;
-    vec3 curvedPosition = vec3(newX, position.y + kineticWave, newZ);
+    float kineticWave = sin(position.y * 1.2 + uTime * 3.5) * uVelocity * (1.0 - uFlatten) * 0.05;
+    vec3 morphPosition = vec3(finalX, position.y + kineticWave, finalZ);
 
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(curvedPosition, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(morphPosition, 1.0);
   }
 `;
 
@@ -43,6 +50,7 @@ export const liquidFragmentShader = `
   uniform float uVelocity;
   uniform vec3 uAccentColor;
   uniform float uOpacity;
+  uniform float uFlatten;
 
   // 2D Simplex Noise Helper
   vec2 hash2(vec2 p) {
@@ -72,10 +80,10 @@ export const liquidFragmentShader = `
   void main() {
     vec2 uv = vUv;
 
-    // Rounded rectangle corner clipping (exact Jesper Landberg panel border-radius)
+    // Rounded rectangle corner clipping (smoothly morphs with uFlatten)
     vec2 p = uv - vec2(0.5);
     vec2 halfSize = vec2(0.495, 0.495);
-    float radius = 0.038;
+    float radius = mix(0.038, 0.015, uFlatten);
     float distToEdge = roundedBoxSDF(p, halfSize, radius);
 
     // Discard fragments outside the rounded card frame
@@ -86,8 +94,8 @@ export const liquidFragmentShader = `
     // Antialiased corner border alpha
     float cornerAlpha = 1.0 - smoothstep(-0.003, 0.001, distToEdge);
 
-    // Active motion factor: only trigger water ripples when cursor is actively moving
-    float motionFactor = smoothstep(0.005, 0.25, uMouseSpeed) * uHover;
+    // Active motion factor
+    float motionFactor = smoothstep(0.005, 0.25, uMouseSpeed) * uHover * (1.0 - uFlatten * 0.8);
 
     vec2 dir = uv - uMouse;
     float dist = length(dir);
@@ -132,7 +140,7 @@ export const liquidFragmentShader = `
 
     // Subtle edge border highlight around the curved card
     float edgeHighlight = smoothstep(-0.008, -0.001, distToEdge) * (1.0 - smoothstep(-0.001, 0.001, distToEdge));
-    finalColor += vec3(0.35, 0.35, 0.4) * edgeHighlight * 0.5;
+    finalColor += vec3(0.35, 0.35, 0.4) * edgeHighlight * (0.5 * (1.0 - uFlatten));
 
     gl_FragColor = vec4(finalColor, a * uOpacity * cornerAlpha);
   }
