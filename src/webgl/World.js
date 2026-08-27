@@ -11,7 +11,7 @@ import { SoundFX } from '../engine/SoundFX.js';
  * World
  * Coordinates the wide panorama 3D cinema scene, perspective camera,
  * dark cybernetic atmosphere, cyber grid floor, floating pixel particles,
- * falling white asteroid speed lines, and interactive transitions.
+ * falling white asteroid speed lines, and ultra-smooth continuous zoom-in transitions.
  */
 export class World {
   constructor(canvasElement, movies, physics, inputManager) {
@@ -147,26 +147,35 @@ export class World {
     this.isZooming = true;
     const { movie, card, uv } = hitResult;
 
+    // 1. Continuous forward camera glide towards the card
     gsap.to(this.camera.position, {
-      z: 7.8,
+      z: 7.2,
       y: 0.0,
-      duration: 0.7,
+      x: this.camera.position.x * 0.3,
+      duration: 0.85,
       ease: 'power3.out'
     });
 
+    // 2. Continuous 3D mesh forward elevation & tilt
     this.carousel.zoomInCard(card, uv, () => {
+      // Complete callback
+    });
+
+    // 3. Open details modal seamlessly during the forward zoom momentum
+    setTimeout(() => {
       if (this.onMovieClickCallback) {
         this.onMovieClickCallback(movie);
       }
-    });
+    }, 240);
   }
 
   resetCardZoom() {
     gsap.to(this.camera.position, {
       z: window.innerWidth < 768 ? 11.5 : 9.8,
       y: 0.05,
-      duration: 0.6,
-      ease: 'power2.inOut',
+      x: 0,
+      duration: 0.75,
+      ease: 'power3.inOut',
       onComplete: () => {
         this.isZooming = false;
       }
